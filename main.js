@@ -130,7 +130,12 @@ async function startBot() {
 
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
-
+  
+  const getMessage = async (key) => {
+  const message = await messagesCollection.findOne({ 'key.id': key.id });
+  return message?.message || null;
+  };
+  
   const sock = makeWASocket({
     version,
     auth: state,
@@ -139,6 +144,7 @@ async function startBot() {
     shouldSyncHistoryMessage: true,
     syncFullHistory: true,
     markOnlineOnConnect: false,
+    getMessage,
   });
 
   sockInstance = sock;
@@ -273,7 +279,6 @@ async function startBot() {
     }
   });
 
-  // Persist contacts to MongoDB
   sock.ev.on('contacts.upsert', async (contacts) => {
     for (const contact of contacts) {
       await contactsCollection.updateOne(
@@ -282,6 +287,33 @@ async function startBot() {
         { upsert: true }
       );
     }
+  });
+
+  sock.ev.on('messaging-history.set', async ({ chats, contacts, messages, isLatest }) => {
+  for (const chat of chats) {
+    await chatsCollection.updateOne(
+      { id: chat.id },
+      { $set: chat },
+      { upsert: true }
+    );
+  }
+
+  for (const contact of contacts) {
+    await contactsCollection.updateOne(
+      { id: contact.id },
+      { $set: contact },
+      { upsert: true }
+    );
+  }
+
+  for (const message of messages) {
+    await messagesCollection.updateOne(
+      { key: message.key },
+      { $set: message },
+      { upsert: true }
+    );
+  }
+  console.log('Historical data synchronized.');
   });
 }
 
