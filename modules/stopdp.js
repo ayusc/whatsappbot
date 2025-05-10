@@ -21,8 +21,9 @@ export default {
 
   async execute(message, args, sock) {
     if (globalThis.autodpInterval) {
-      clearInterval(globalThis.autodpInterval);  
-      globalThis.autodpInterval = null;  
+      clearInterval(globalThis.autodpInterval); 
+      globalThis.autodpInterval = null;
+      globalThis.autodpRunning = false; 
       await sock.sendMessage(message.key.remoteJid, { text: 'AutoDP stopped' }, { quoted: message });
     } else {
       await sock.sendMessage(message.key.remoteJid, { text: 'AutoDP is not running' }, { quoted: message });
