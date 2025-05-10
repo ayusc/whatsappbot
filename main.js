@@ -117,7 +117,7 @@ async function restoreAuthStateFromMongo() {
 async function startBot() {
   const mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
-  const db = mongoClient.db(dbName);
+  db = mongoClient.db(dbName);
   sessionCollection = db.collection('wahbuddy_sessions');
   const chatsCollection = db.collection('chats');
   const messagesCollection = db.collection('messages');
