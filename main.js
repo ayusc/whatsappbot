@@ -139,11 +139,10 @@ async function startBot() {
   const sock = makeWASocket({
     version,
     auth: state,
-    browser: Browsers.macOS("Google Chrome"),
+    browser: Browsers.macOS("Desktop"),
     logger: pino({ level: 'silent' }),
     shouldSyncHistoryMessage: true,
     syncFullHistory: true,
-    markOnlineOnConnect: false,
     getMessage,
   });
 
