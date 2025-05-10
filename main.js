@@ -117,11 +117,13 @@ async function restoreAuthStateFromMongo() {
 async function startBot() {
   const mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
-  db = mongoClient.db(dbName);
-  sessionCollection = db.collection('wahbuddy_sessions');
+  const db = mongoClient.db(dbName);
+  const sessionCollection = db.collection('wahbuddy_sessions');
+  const chatsCollection = db.collection('chats');
+  const messagesCollection = db.collection('messages');
+  const contactsCollection = db.collection('contacts');
   console.log('Connected to MongoDB');
 
-  // Ensure authDir exists
   fs.mkdirSync(authDir, { recursive: true });
 
   await restoreAuthStateFromMongo();
@@ -134,7 +136,9 @@ async function startBot() {
     auth: state,
     browser: Browsers.macOS("Google Chrome"),
     logger: pino({ level: 'silent' }),
-    syncFullHistory: true
+    shouldSyncHistoryMessage: true,
+    syncFullHistory: true,
+    markOnlineOnConnect: false,
   });
 
   sockInstance = sock;
@@ -143,7 +147,7 @@ async function startBot() {
     await saveCreds();
     await saveAuthStateToMongo();
   }, 1000));
-  
+
   const commands = new Map();
   const modulesPath = path.join(__dirname, 'modules');
   const moduleFiles = fs.readdirSync(modulesPath).filter(file => file.endsWith('.js'));
@@ -174,7 +178,7 @@ async function startBot() {
       }
     } else if (connection === 'open') {
       console.log('Authenticated with WhatsApp');
-      
+
       const autoDP = process.env.ALWAYS_AUTO_DP || 'False';
       const autobio = process.env.ALWAYS_AUTO_BIO || 'False';
       const SHOW_HOROSCOPE = process.env.SHOW_HOROSCOPE || 'False';
@@ -221,8 +225,30 @@ async function startBot() {
     }
   });
 
+  // Persist chats to MongoDB
+  sock.ev.on('chats.upsert', async (chats) => {
+    for (const chat of chats) {
+      await chatsCollection.updateOne(
+        { id: chat.id },
+        { $set: chat },
+        { upsert: true }
+      );
+    }
+  });
+
+  // Persist messages to MongoDB
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify' || !messages || !messages.length) return;
+    if (!messages || !messages.length) return;
+
+    for (const msg of messages) {
+      await messagesCollection.updateOne(
+        { 'key.id': msg.key.id },
+        { $set: msg },
+        { upsert: true }
+      );
+    }
+
+    if (type !== 'notify') return;
 
     const msg = messages[0];
     if (!msg.message || !msg.key.fromMe) return;
@@ -244,6 +270,17 @@ async function startBot() {
       } catch (err) {
         console.error(`Error executing ${command}:`, err);
       }
+    }
+  });
+
+  // Persist contacts to MongoDB
+  sock.ev.on('contacts.upsert', async (contacts) => {
+    for (const contact of contacts) {
+      await contactsCollection.updateOne(
+        { id: contact.id },
+        { $set: contact },
+        { upsert: true }
+      );
     }
   });
 }
