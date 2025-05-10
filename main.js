@@ -290,6 +290,7 @@ async function startBot() {
   });
 
   sock.ev.on('messaging-history.set', async ({ chats, contacts, messages, isLatest }) => {
+  console.log('messaging-history.set event triggered');
   for (const chat of chats) {
     await chatsCollection.updateOne(
       { id: chat.id },
