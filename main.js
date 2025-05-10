@@ -141,7 +141,6 @@ async function startBot() {
     auth: state,
     browser: Browsers.macOS("Desktop"),
     logger: pino({ level: 'silent' }),
-    shouldSyncHistoryMessage: true,
     syncFullHistory: true,
     getMessage,
   });
