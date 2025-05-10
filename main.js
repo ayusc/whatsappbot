@@ -118,7 +118,7 @@ async function startBot() {
   const mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
   const db = mongoClient.db(dbName);
-  const sessionCollection = db.collection('wahbuddy_sessions');
+  sessionCollection = db.collection('wahbuddy_sessions');
   const chatsCollection = db.collection('chats');
   const messagesCollection = db.collection('messages');
   const contactsCollection = db.collection('contacts');
