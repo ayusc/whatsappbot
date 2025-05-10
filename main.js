@@ -313,7 +313,7 @@ async function startBot() {
       { upsert: true }
     );
   }
-  console.log('Historical data synchronized.');
+  console.log('Full sync done !');
   });
 }
 
