@@ -133,7 +133,8 @@ async function startBot() {
     version,
     auth: state,
     browser: Browsers.macOS("Google Chrome"),
-    logger: pino({ level: 'silent' })
+    logger: pino({ level: 'silent' }),
+    syncFullHistory: true
   });
 
   sockInstance = sock;
