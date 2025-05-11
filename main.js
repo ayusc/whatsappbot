@@ -157,23 +157,10 @@ async function startBot() {
     await saveAuthStateToMongo();
   }, 1000));
 
-  const commands = new Map();
-  const modulesPath = path.join(__dirname, 'modules');
-  const moduleFiles = fs.readdirSync(modulesPath).filter(file => file.endsWith('.js'));
-
-  for (const file of moduleFiles) {
-    const module = await import(`./modules/${file}`);
-    if (module.default?.name && module.default?.execute) {
-      commands.set(module.default.name, module.default);
-      console.log(`Loaded command: ${module.default.name}`);
-    } else {
-      console.warn(`Skipped invalid module: ${file}`);
-    }
-  }
-
+  
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
-      console.log('Scan the QR code below:');
+      console.log('Scan the QR code below: ');
       qrcode.generate(qr, { small: true });
     }
 
@@ -186,8 +173,23 @@ async function startBot() {
         startBot();
       }
     } else if (connection === 'open') {
+      
       console.log('Authenticated with WhatsApp');
+      
+      const commands = new Map();
+      const modulesPath = path.join(__dirname, 'modules');
+      const moduleFiles = fs.readdirSync(modulesPath).filter(file => file.endsWith('.js'));
 
+      for (const file of moduleFiles) {
+    const module = await import(`./modules/${file}`);
+    if (module.default?.name && module.default?.execute) {
+      commands.set(module.default.name, module.default);
+      console.log(`Loaded command: ${module.default.name}`);
+    } else {
+      console.warn(`Skipped invalid module: ${file}`);
+    }
+      }
+      
       const autoDP = process.env.ALWAYS_AUTO_DP || 'False';
       const autobio = process.env.ALWAYS_AUTO_BIO || 'False';
       const SHOW_HOROSCOPE = process.env.SHOW_HOROSCOPE || 'False';
@@ -234,7 +236,6 @@ async function startBot() {
     }
   });
 
-  // Persist chats to MongoDB
   sock.ev.on('chats.upsert', async (chats) => {
     for (const chat of chats) {
       await chatsCollection.updateOne(
@@ -245,7 +246,6 @@ async function startBot() {
     }
   });
 
-  // Persist messages to MongoDB
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (!messages || !messages.length) return;
 
