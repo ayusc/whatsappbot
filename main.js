@@ -159,6 +159,7 @@ async function startBot() {
   });
 
   sockInstance = sock;
+  const commands = new Map();
 
   sock.ev.on(
     'creds.update',
@@ -177,6 +178,7 @@ async function startBot() {
       }
 
       if (connection === 'close') {
+        commands.clear();
         const shouldReconnect =
           lastDisconnect?.error instanceof Boom &&
           lastDisconnect.error.output?.statusCode !==
@@ -188,12 +190,11 @@ async function startBot() {
       } else if (connection === 'open') {
         console.log('Authenticated with WhatsApp');
 
-        const commands = new Map();
         const modulesPath = path.join(__dirname, 'modules');
         const moduleFiles = fs
           .readdirSync(modulesPath)
           .filter(file => file.endsWith('.js'));
-
+        
         for (const file of moduleFiles) {
           const module = await import(`./modules/${file}`);
           if (module.default?.name && module.default?.execute) {
