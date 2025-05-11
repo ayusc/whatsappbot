@@ -137,14 +137,14 @@ async function startBot() {
   };
   
   const sock = makeWASocket({
-    version,
-    auth: state,
-    browser: Browsers.macOS("Desktop"),
-    logger: pino({ level: 'silent' }),
-    syncFullHistory: true,
-    getMessage,
+  version,
+  auth: state,
+  browser: Browsers.macOS("Desktop"), 
+  syncFullHistory: true,              
+  getMessage,
+  logger: pino({ level: 'silent' }),
   });
-
+  
   sockInstance = sock;
 
   sock.ev.on('creds.update', debounce(async () => {
