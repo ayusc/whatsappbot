@@ -124,9 +124,9 @@ async function startBot() {
   await mongoClient.connect();
   db = mongoClient.db(dbName);
   sessionCollection = db.collection('wahbuddy_sessions');
-  const chatsCollection = db.collection('chats');
-  const messagesCollection = db.collection('messages');
-  const contactsCollection = db.collection('contacts');
+  chatsCollection = db.collection('chats');
+  messagesCollection = db.collection('messages');
+  contactsCollection = db.collection('contacts');
   console.log('Connected to MongoDB');
 
   fs.mkdirSync(authDir, { recursive: true });
