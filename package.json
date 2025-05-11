@@ -9,7 +9,7 @@
     "axios": "^1.6.0",
     "qrcode-terminal": "^0.12.0",
     "@hapi/boom": "latest",
-    "baileys": "latest",
+    "baileys": "github:WhiskeySockets/Baileys#master",
     "dotenv": "^16.3.1",
     "mongodb": "^6.3.0",
     "node-fetch": "^3.3.2",
