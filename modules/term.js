@@ -31,7 +31,8 @@ export default {
     const sender = msg.key.remoteJid;
     let command = '';
 
-    const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+    const body =
+      msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
 
     if (body.startsWith('.term\n')) {
       command = body.split('\n').slice(1).join('\n').trim();
@@ -39,14 +40,22 @@ export default {
       command = body.replace(/^\.term\s*/, '').trim();
     }
 
-    if (!command && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+    if (
+      !command &&
+      msg.message?.extendedTextMessage?.contextInfo?.quotedMessage
+    ) {
       const quoted = msg.message.extendedTextMessage.contextInfo.quotedMessage;
-      const quotedBody = quoted.conversation || quoted.extendedTextMessage?.text || '';
+      const quotedBody =
+        quoted.conversation || quoted.extendedTextMessage?.text || '';
       command = quotedBody.trim();
     }
 
     if (!command) {
-      await sock.sendMessage(sender, { text: 'No terminal command provided.' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'No terminal command provided.' },
+        { quoted: msg }
+      );
       return;
     }
 
@@ -63,17 +72,25 @@ export default {
         const fileBuffer = fs.readFileSync(OUTPUT_FILE);
         const mimetype = mime.lookup(OUTPUT_FILE) || 'text/plain';
 
-        await sock.sendMessage(sender, {
-          document: fileBuffer,
-          fileName: 'output.txt',
-          mimetype: mimetype,
-          caption: 'Output too long. Sent as file.',
-        }, { quoted: msg });
+        await sock.sendMessage(
+          sender,
+          {
+            document: fileBuffer,
+            fileName: 'output.txt',
+            mimetype: mimetype,
+            caption: 'Output too long. Sent as file.',
+          },
+          { quoted: msg }
+        );
 
         fs.unlinkSync(OUTPUT_FILE);
       } else {
-        await sock.sendMessage(sender, { text: '```' + output.trim() + '```' }, { quoted: msg });
+        await sock.sendMessage(
+          sender,
+          { text: '```' + output.trim() + '```' },
+          { quoted: msg }
+        );
       }
     });
-  }
+  },
 };

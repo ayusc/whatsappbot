@@ -35,10 +35,10 @@ export default {
       quotedType === 'conversation'
         ? quoted.conversation
         : quotedType === 'extendedTextMessage'
-        ? quoted.extendedTextMessage?.text
-        : quotedType === 'textMessage'
-        ? quoted.textMessage?.text
-        : null;
+          ? quoted.extendedTextMessage?.text
+          : quotedType === 'textMessage'
+            ? quoted.textMessage?.text
+            : null;
 
     if (quotedText) {
       textToTranslate = quotedText;
@@ -48,9 +48,13 @@ export default {
       }
     } else {
       if (args.length === 0) {
-        return await sock.sendMessage(jid, {
-          text: 'Usage: `.tr <language_code> <text>` or reply with `.tr <language_code>`',
-        }, { quoted: msg });
+        return await sock.sendMessage(
+          jid,
+          {
+            text: 'Usage: `.tr <language_code> <text>` or reply with `.tr <language_code>`',
+          },
+          { quoted: msg }
+        );
       }
 
       if (args[0].length === 2) {
@@ -58,9 +62,13 @@ export default {
         textToTranslate = args.slice(1).join(' ');
 
         if (!textToTranslate) {
-          return await sock.sendMessage(jid, {
-            text: 'Please provide text to translate.',
-          }, { quoted: msg });
+          return await sock.sendMessage(
+            jid,
+            {
+              text: 'Please provide text to translate.',
+            },
+            { quoted: msg }
+          );
         }
       } else {
         textToTranslate = args.join(' ');
@@ -71,14 +79,22 @@ export default {
       const result = await translate(textToTranslate, { to: langCode });
       const fromLang = result.raw?.src || 'unknown';
 
-      await sock.sendMessage(jid, {
-        text: `*Translated from ${fromLang} to ${langCode}:*\n\n${result.text}`,
-      }, { quoted: msg });
+      await sock.sendMessage(
+        jid,
+        {
+          text: `*Translated from ${fromLang} to ${langCode}:*\n\n${result.text}`,
+        },
+        { quoted: msg }
+      );
     } catch (error) {
       console.error(error);
-      await sock.sendMessage(jid, {
-        text: 'Failed to translate. Please check the language code or try again.',
-      }, { quoted: msg });
+      await sock.sendMessage(
+        jid,
+        {
+          text: 'Failed to translate. Please check the language code or try again.',
+        },
+        { quoted: msg }
+      );
     }
   },
 };

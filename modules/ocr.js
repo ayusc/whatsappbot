@@ -42,27 +42,35 @@ export default {
     const sender = msg.key.remoteJid;
 
     if (!quoted || !quoted.imageMessage) {
-      await sock.sendMessage(sender, { text: 'Please reply to an image message.' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'Please reply to an image message.' },
+        { quoted: msg }
+      );
       return;
     }
 
     const lang = args[0] || 'eng';
 
     const mediaBuffer = await downloadMediaMessage(
-    { message: { imageMessage: quoted.imageMessage } }, 
-    'buffer', 
-    {}, 
-    { logger }
+      { message: { imageMessage: quoted.imageMessage } },
+      'buffer',
+      {},
+      { logger }
     );
 
     if (!mediaBuffer) {
-      await sock.sendMessage(sender, { text: 'Failed to download image from message.' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'Failed to download image from message.' },
+        { quoted: msg }
+      );
       return;
     }
-    
+
     const tempPath = path.join('./', `ocr.jpg`);
     writeFileSync(tempPath, mediaBuffer);
-    
+
     const formData = new FormData();
     formData.append('apikey', OCR_SPACE_API_KEY);
     formData.append('language', lang);
@@ -72,28 +80,40 @@ export default {
     formData.append('scale', 'true');
     formData.append('file', createReadStream(tempPath));
 
-    const sent = await sock.sendMessage(sender, { text: `Processing image using language "${lang}"...` }, { quoted: msg });
+    const sent = await sock.sendMessage(
+      sender,
+      { text: `Processing image using language "${lang}"...` },
+      { quoted: msg }
+    );
 
     try {
       const response = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const result = await response.json();
 
       if (result.IsErroredOnProcessing) {
         const errorText = result.ErrorMessage?.[0] || 'OCR processing failed.';
-        await sock.sendMessage(sender, { text: `Error: ${errorText}`, edit: sent.key });
+        await sock.sendMessage(sender, {
+          text: `Error: ${errorText}`,
+          edit: sent.key,
+        });
       } else {
         const parsedText = result.ParsedResults?.[0]?.ParsedText?.trim();
-        const finalText = parsedText ? `OCR Result:\n\n${parsedText}` : 'No readable text found in the image.';
-        await sock.sendMessage(sender, { text: finalText,  edit: sent.key });
+        const finalText = parsedText
+          ? `OCR Result:\n\n${parsedText}`
+          : 'No readable text found in the image.';
+        await sock.sendMessage(sender, { text: finalText, edit: sent.key });
       }
     } catch (err) {
-      await sock.sendMessage(sender, { text: 'OCR failed to process the image.', edit: sent.key });
+      await sock.sendMessage(sender, {
+        text: 'OCR failed to process the image.',
+        edit: sent.key,
+      });
     } finally {
       unlinkSync(tempPath);
     }
-  }
+  },
 };

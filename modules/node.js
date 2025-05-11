@@ -71,24 +71,36 @@ export default {
     }
 
     if (!code) {
-      return await sock.sendMessage(msg.key.remoteJid, { text: 'No code provided.' }, { quoted: msg });
+      return await sock.sendMessage(
+        msg.key.remoteJid,
+        { text: 'No code provided.' },
+        { quoted: msg }
+      );
     }
 
     // Capture console output
     let logOutput = '';
     const originalLog = console.log;
     console.log = (...args) => {
-      logOutput += args.map(a => (typeof a === 'string' ? a : JSON.stringify(a, null, 2))).join(' ') + '\n';
+      logOutput +=
+        args
+          .map(a => (typeof a === 'string' ? a : JSON.stringify(a, null, 2)))
+          .join(' ') + '\n';
     };
 
     try {
       // Provide `require` and CommonJS compatibility inside user code
-      const asyncFunction = new Function('msg', 'sock', 'require', `
+      const asyncFunction = new Function(
+        'msg',
+        'sock',
+        'require',
+        `
         return (async () => {
           let message = msg;
           ${code}
         })();
-      `);
+      `
+      );
 
       const result = await asyncFunction(msg, sock, require);
 
@@ -110,20 +122,32 @@ export default {
           fileName: 'output.txt',
         };
 
-        await sock.sendMessage(msg.key.remoteJid, {
-          document: media.data,
-          mimetype: media.mimetype,
-          fileName: media.fileName,
-          caption: 'Output too long. Sent as file.',
-        }, { quoted: msg });
+        await sock.sendMessage(
+          msg.key.remoteJid,
+          {
+            document: media.data,
+            mimetype: media.mimetype,
+            fileName: media.fileName,
+            caption: 'Output too long. Sent as file.',
+          },
+          { quoted: msg }
+        );
 
         fs.unlinkSync(OUTPUT_FILE);
       } else {
-        await sock.sendMessage(msg.key.remoteJid, { text: '```' + finalOutput.trim() + '```' }, { quoted: msg });
+        await sock.sendMessage(
+          msg.key.remoteJid,
+          { text: '```' + finalOutput.trim() + '```' },
+          { quoted: msg }
+        );
       }
     } catch (error) {
       console.log = originalLog;
-      await sock.sendMessage(msg.key.remoteJid, { text: 'Error:\n```' + error.message + '```' }, { quoted: msg });
+      await sock.sendMessage(
+        msg.key.remoteJid,
+        { text: 'Error:\n```' + error.message + '```' },
+        { quoted: msg }
+      );
     }
   },
 };

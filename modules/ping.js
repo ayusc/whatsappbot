@@ -33,12 +33,9 @@ export default {
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    await sock.sendMessage(
-      jid,
-      {
-        text: `*Pong !*\nResponse time: ${timeTaken}s`,
-        edit: sent.key    
-      }
-    );
+    await sock.sendMessage(jid, {
+      text: `*Pong !*\nResponse time: ${timeTaken}s`,
+      edit: sent.key,
+    });
   },
 };

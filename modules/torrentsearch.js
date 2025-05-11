@@ -25,7 +25,11 @@ export default {
     const sender = msg.key.remoteJid;
 
     if (!args.length) {
-      await sock.sendMessage(sender, { text: 'No arguments given for search' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'No arguments given for search' },
+        { quoted: msg }
+      );
       return;
     }
 
@@ -59,26 +63,35 @@ export default {
       }
 
       if (!results.length) {
-        await sock.sendMessage(sender, { text: `No results found for *${query}*` }, { quoted: msg });
+        await sock.sendMessage(
+          sender,
+          { text: `No results found for *${query}*` },
+          { quoted: msg }
+        );
         return;
       }
 
       let reply = `*Search results for ${query}*\n\n`;
 
       for (const result of results) {
-        reply += `*Name:* ${result.Name || 'N/A'}\n` +
-                 `*Size:* ${result.Size || 'N/A'}\n` +
-                 `*Upload Date:* ${result.DateUploaded || 'N/A'}\n` +
-                 `*Seeders:* ${result.Seeders || 'N/A'}\n` +
-                 `*Leechers:* ${result.Leechers || 'N/A'}\n` +
-                 `*Downloads:* ${result.Downloads || 'N/A'}\n` +
-                 `*Magnet Link:*\n${result.Magnet || 'N/A'}\n\n`;
+        reply +=
+          `*Name:* ${result.Name || 'N/A'}\n` +
+          `*Size:* ${result.Size || 'N/A'}\n` +
+          `*Upload Date:* ${result.DateUploaded || 'N/A'}\n` +
+          `*Seeders:* ${result.Seeders || 'N/A'}\n` +
+          `*Leechers:* ${result.Leechers || 'N/A'}\n` +
+          `*Downloads:* ${result.Downloads || 'N/A'}\n` +
+          `*Magnet Link:*\n${result.Magnet || 'N/A'}\n\n`;
       }
 
       await sock.sendMessage(sender, { text: reply.trim() }, { quoted: msg });
     } catch (err) {
       console.error('Error fetching torrents:', err.message);
-      await sock.sendMessage(sender, { text: 'Something went wrong while fetching results.' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'Something went wrong while fetching results.' },
+        { quoted: msg }
+      );
     }
-  }
+  },
 };

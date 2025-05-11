@@ -33,7 +33,9 @@ async function runQuoteUpdate() {
       attempts++;
 
       if (attempts >= 10) {
-        console.warn('Failed to find a new quote after 10 attempts. Skipping...');
+        console.warn(
+          'Failed to find a new quote after 10 attempts. Skipping...'
+        );
         return null;
       }
     }
@@ -54,53 +56,60 @@ export default {
     'Type .autobio in any chat to start updating WhatsApp "About" with motivational quotes every X seconds (default 60s)',
 
   async execute(msg, _args, sock) {
-  const AUTO_BIO_INTERVAL = parseInt(process.env.AUTO_BIO_INTERVAL_MS, 10) || 60000;
-  const jid = msg.key.remoteJid;
+    const AUTO_BIO_INTERVAL =
+      parseInt(process.env.AUTO_BIO_INTERVAL_MS, 10) || 60000;
+    const jid = msg.key.remoteJid;
 
-  if (globalThis.autobioRunning) {
+    if (globalThis.autobioRunning) {
+      if (!msg.fromStartup) {
+        await sock.sendMessage(
+          jid,
+          { text: 'AutoBio is already running!' },
+          { quoted: msg }
+        );
+      }
+      return;
+    }
+
+    globalThis.autobioRunning = true;
+
     if (!msg.fromStartup) {
-      await sock.sendMessage(jid, { text: 'AutoBio is already running!' }, { quoted: msg });
+      await sock.sendMessage(
+        jid,
+        {
+          text: `AutoBio started. Updating every ${AUTO_BIO_INTERVAL / 1000}s`,
+        },
+        { quoted: msg }
+      );
     }
-    return;
-  }
 
-  globalThis.autobioRunning = true;
+    const now = Date.now();
+    const nextAligned = Math.ceil(now / AUTO_BIO_INTERVAL) * AUTO_BIO_INTERVAL;
+    const delay = nextAligned - now;
 
-  if (!msg.fromStartup) {
-    await sock.sendMessage(
-      jid,
-      { text: `AutoBio started. Updating every ${AUTO_BIO_INTERVAL / 1000}s` },
-      { quoted: msg }
-    );
-  }
-
-  const now = Date.now();
-  const nextAligned = Math.ceil(now / AUTO_BIO_INTERVAL) * AUTO_BIO_INTERVAL;
-  const delay = nextAligned - now;
-
-  // Set the interval first
-  globalThis.autobioInterval = setInterval(async () => {
-    const q = await runQuoteUpdate();
-    if (q) {
-      try {
-        await sock.updateProfileStatus(q);
-        console.log('About updated');
-      } catch (error) {
-        console.error('Failed to update About:', error.message);
+    // Set the interval first
+    globalThis.autobioInterval = setInterval(async () => {
+      const q = await runQuoteUpdate();
+      if (q) {
+        try {
+          await sock.updateProfileStatus(q);
+          console.log('About updated');
+        } catch (error) {
+          console.error('Failed to update About:', error.message);
+        }
       }
-    }
-  }, AUTO_BIO_INTERVAL);
+    }, AUTO_BIO_INTERVAL);
 
-  setTimeout(async () => {
-    const quote = await runQuoteUpdate();
-    if (quote) {
-      try {
-        await sock.updateProfileStatus(quote);
-        console.log('About updated');
-      } catch (error) {
-        console.error('Failed to set initial About status:', error.message);
+    setTimeout(async () => {
+      const quote = await runQuoteUpdate();
+      if (quote) {
+        try {
+          await sock.updateProfileStatus(quote);
+          console.log('About updated');
+        } catch (error) {
+          console.error('Failed to set initial About status:', error.message);
+        }
       }
-    }
-  }, delay);
-},
+    }, delay);
+  },
 };

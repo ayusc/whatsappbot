@@ -40,15 +40,25 @@ export default {
       if (type === 'conversation') {
         code = msg.message.conversation.replace(/^\.carbon\s*/, '').trim();
       } else if (type === 'extendedTextMessage') {
-        code = msg.message.extendedTextMessage?.text?.replace(/^\.carbon\s*/, '').trim() || '';
+        code =
+          msg.message.extendedTextMessage?.text
+            ?.replace(/^\.carbon\s*/, '')
+            .trim() || '';
       }
     }
 
     if (!code) {
-      return await sock.sendMessage(jid, { text: 'Please provide some code to render.' }, { quoted: msg });
+      return await sock.sendMessage(
+        jid,
+        { text: 'Please provide some code to render.' },
+        { quoted: msg }
+      );
     }
 
-    code = code.split('\n').map(line => line.trimStart()).join('\n');
+    code = code
+      .split('\n')
+      .map(line => line.trimStart())
+      .join('\n');
 
     const res = await fetch('https://carbonara.solopov.dev/api/cook', {
       method: 'POST',
@@ -61,7 +71,11 @@ export default {
     });
 
     if (!res.ok) {
-      return await sock.sendMessage(jid, { text: 'Failed to generate image from code.' }, { quoted: msg });
+      return await sock.sendMessage(
+        jid,
+        { text: 'Failed to generate image from code.' },
+        { quoted: msg }
+      );
     }
 
     const buffer = await res.buffer();

@@ -41,19 +41,27 @@ export default {
     const sender = msg.key.remoteJid;
 
     if (!quoted || !quoted.imageMessage) {
-      await sock.sendMessage(sender, { text: 'Reply to an image to remove its background.' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'Reply to an image to remove its background.' },
+        { quoted: msg }
+      );
       return;
     }
 
     const imageBuffer = await downloadMediaMessage(
-    { message: { imageMessage: quoted.imageMessage } }, 
-    'buffer', 
-    {}, 
-    { logger }
+      { message: { imageMessage: quoted.imageMessage } },
+      'buffer',
+      {},
+      { logger }
     );
 
     if (!imageBuffer) {
-      await sock.sendMessage(sender, { text: 'Failed to download the image.' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'Failed to download the image.' },
+        { quoted: msg }
+      );
       return;
     }
 
@@ -65,7 +73,7 @@ export default {
       const formData = new FormData();
       formData.append('image_file', fs.createReadStream(tempInputPath));
       formData.append('scale', '100%');
-      
+
       const response = await fetch('https://api.remove.bg/v1.0/removebg', {
         method: 'POST',
         headers: {
@@ -76,7 +84,11 @@ export default {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        await sock.sendMessage(sender, { text: 'Failed to remove background: ' + response.statusText }, { quoted: msg });
+        await sock.sendMessage(
+          sender,
+          { text: 'Failed to remove background: ' + response.statusText },
+          { quoted: msg }
+        );
         return;
       }
 
@@ -90,10 +102,14 @@ export default {
 
       await sock.sendMessage(sender, messageOptions, { quoted: msg });
     } catch (err) {
-      await sock.sendMessage(sender, { text: 'Failed to remove background from the image.' }, { quoted: msg });
+      await sock.sendMessage(
+        sender,
+        { text: 'Failed to remove background from the image.' },
+        { quoted: msg }
+      );
     } finally {
       if (fs.existsSync(tempInputPath)) fs.unlinkSync(tempInputPath);
       if (fs.existsSync(tempOutputPath)) fs.unlinkSync(tempOutputPath);
     }
-  }
+  },
 };

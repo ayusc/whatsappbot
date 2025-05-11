@@ -17,7 +17,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } from 'baileys';
+import {
+  makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  Browsers,
+} from 'baileys';
 import { Boom } from '@hapi/boom';
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
@@ -88,7 +93,10 @@ async function saveAuthStateToMongo(attempt = 1) {
       console.warn(`Retrying creds update... attempt ${attempt + 1}`);
       await saveAuthStateToMongo(attempt + 1);
     } else {
-      console.error(`Failed to update creds in MongoDB after ${attempt} attempts:`, err);
+      console.error(
+        `Failed to update creds in MongoDB after ${attempt} attempts:`,
+        err
+      );
     }
   }
 }
@@ -135,108 +143,118 @@ async function startBot() {
 
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
-  
-  const getMessage = async (key) => {
-  const message = await messagesCollection.findOne({ 'key.id': key.id });
-  return message?.message || null;
+
+  const getMessage = async key => {
+    const message = await messagesCollection.findOne({ 'key.id': key.id });
+    return message?.message || null;
   };
-  
+
   const sock = makeWASocket({
-  version,
-  auth: state,
-  browser: Browsers.macOS("Desktop"), 
-  syncFullHistory: true,              
-  getMessage,
-  logger: pino({ level: 'silent' }),
+    version,
+    auth: state,
+    browser: Browsers.macOS('Desktop'),
+    syncFullHistory: true,
+    getMessage,
+    logger: pino({ level: 'silent' }),
   });
-  
+
   sockInstance = sock;
 
-  sock.ev.on('creds.update', debounce(async () => {
-    await saveCreds();
-    await saveAuthStateToMongo();
-  }, 1000));
+  sock.ev.on(
+    'creds.update',
+    debounce(async () => {
+      await saveCreds();
+      await saveAuthStateToMongo();
+    }, 1000)
+  );
 
-  
-  sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
-    if (qr) {
-      console.log('Scan the QR code below: ');
-      qrcode.generate(qr, { small: true });
-    }
-
-    if (connection === 'close') {
-      const shouldReconnect =
-        (lastDisconnect?.error instanceof Boom &&
-         lastDisconnect.error.output?.statusCode !== DisconnectReason.loggedOut);
-      console.log("Connection closed. Reconnecting:", shouldReconnect);
-      if (shouldReconnect) {
-        startBot();
-      }
-    } else if (connection === 'open') {
-      
-      console.log('Authenticated with WhatsApp');
-      
-      const commands = new Map();
-      const modulesPath = path.join(__dirname, 'modules');
-      const moduleFiles = fs.readdirSync(modulesPath).filter(file => file.endsWith('.js'));
-
-      for (const file of moduleFiles) {
-    const module = await import(`./modules/${file}`);
-    if (module.default?.name && module.default?.execute) {
-      commands.set(module.default.name, module.default);
-      console.log(`Loaded command: ${module.default.name}`);
-    } else {
-      console.warn(`Skipped invalid module: ${file}`);
-    }
-      }
-      
-      const autoDP = process.env.ALWAYS_AUTO_DP || 'False';
-      const autobio = process.env.ALWAYS_AUTO_BIO || 'False';
-      const SHOW_HOROSCOPE = process.env.SHOW_HOROSCOPE || 'False';
-
-      const fakeMessage = {
-        key: { remoteJid: sock.user.id },
-        pushName: sock.user.name || 'WahBuddy',
-        message: {},
-        participant: sock.user.id,
-        fromStartup: true
-      };
-
-      if (SHOW_HOROSCOPE !== 'True' && SHOW_HOROSCOPE !== 'False') {
-        throw new Error('SHOW_HOROSCOPE must be "True" or "False" (as string). Received: ' + SHOW_HOROSCOPE);
+  sock.ev.on(
+    'connection.update',
+    async ({ connection, lastDisconnect, qr }) => {
+      if (qr) {
+        console.log('Scan the QR code below: ');
+        qrcode.generate(qr, { small: true });
       }
 
-      if (autoDP === 'True' && !autoDPStarted) {
-        autoDPStarted = true;
-        if (commands.has('.autodp')) {
-          try {
-            await commands.get('.autodp').execute(fakeMessage, [], sock);
-            console.log('AutoDP enabled');
-          } catch (error) {
-            console.error('Failed to enable AutoDP', error);
+      if (connection === 'close') {
+        const shouldReconnect =
+          lastDisconnect?.error instanceof Boom &&
+          lastDisconnect.error.output?.statusCode !==
+            DisconnectReason.loggedOut;
+        console.log('Connection closed. Reconnecting:', shouldReconnect);
+        if (shouldReconnect) {
+          startBot();
+        }
+      } else if (connection === 'open') {
+        console.log('Authenticated with WhatsApp');
+
+        const commands = new Map();
+        const modulesPath = path.join(__dirname, 'modules');
+        const moduleFiles = fs
+          .readdirSync(modulesPath)
+          .filter(file => file.endsWith('.js'));
+
+        for (const file of moduleFiles) {
+          const module = await import(`./modules/${file}`);
+          if (module.default?.name && module.default?.execute) {
+            commands.set(module.default.name, module.default);
+            console.log(`Loaded command: ${module.default.name}`);
+          } else {
+            console.warn(`Skipped invalid module: ${file}`);
           }
-        } else {
-          console.warn('.autodp command not found');
+        }
+
+        const autoDP = process.env.ALWAYS_AUTO_DP || 'False';
+        const autobio = process.env.ALWAYS_AUTO_BIO || 'False';
+        const SHOW_HOROSCOPE = process.env.SHOW_HOROSCOPE || 'False';
+
+        const fakeMessage = {
+          key: { remoteJid: sock.user.id },
+          pushName: sock.user.name || 'WahBuddy',
+          message: {},
+          participant: sock.user.id,
+          fromStartup: true,
+        };
+
+        if (SHOW_HOROSCOPE !== 'True' && SHOW_HOROSCOPE !== 'False') {
+          throw new Error(
+            'SHOW_HOROSCOPE must be "True" or "False" (as string). Received: ' +
+              SHOW_HOROSCOPE
+          );
+        }
+
+        if (autoDP === 'True' && !autoDPStarted) {
+          autoDPStarted = true;
+          if (commands.has('.autodp')) {
+            try {
+              await commands.get('.autodp').execute(fakeMessage, [], sock);
+              console.log('AutoDP enabled');
+            } catch (error) {
+              console.error('Failed to enable AutoDP', error);
+            }
+          } else {
+            console.warn('.autodp command not found');
+          }
+        }
+
+        if (autobio === 'True' && !autoBioStarted) {
+          autoBioStarted = true;
+          if (commands.has('.autobio')) {
+            try {
+              await commands.get('.autobio').execute(fakeMessage, [], sock);
+              console.log('AutoBio enabled');
+            } catch (error) {
+              console.error('Failed to enable AutoBio', error);
+            }
+          } else {
+            console.warn('.autobio command not found');
+          }
         }
       }
-
-      if (autobio === 'True' && !autoBioStarted) {
-        autoBioStarted = true;
-        if (commands.has('.autobio')) {
-          try {
-            await commands.get('.autobio').execute(fakeMessage, [], sock);
-            console.log('AutoBio enabled');
-          } catch (error) {
-            console.error('Failed to enable AutoBio', error);
-          }
-        } else {
-          console.warn('.autobio command not found');
-        }
-      }
     }
-  });
+  );
 
-  sock.ev.on('chats.upsert', async (chats) => {
+  sock.ev.on('chats.upsert', async chats => {
     for (const chat of chats) {
       await chatsCollection.updateOne(
         { id: chat.id },
@@ -282,7 +300,7 @@ async function startBot() {
     }
   });
 
-  sock.ev.on('contacts.upsert', async (contacts) => {
+  sock.ev.on('contacts.upsert', async contacts => {
     for (const contact of contacts) {
       await contactsCollection.updateOne(
         { id: contact.id },
@@ -292,33 +310,36 @@ async function startBot() {
     }
   });
 
-  sock.ev.on('messaging-history.set', async ({ chats, contacts, messages, isLatest }) => {
-  //console.log('messaging-history.set event triggered');
-  for (const chat of chats) {
-    await chatsCollection.updateOne(
-      { id: chat.id },
-      { $set: chat },
-      { upsert: true }
-    );
-  }
+  sock.ev.on(
+    'messaging-history.set',
+    async ({ chats, contacts, messages, isLatest }) => {
+      //console.log('messaging-history.set event triggered');
+      for (const chat of chats) {
+        await chatsCollection.updateOne(
+          { id: chat.id },
+          { $set: chat },
+          { upsert: true }
+        );
+      }
 
-  for (const contact of contacts) {
-    await contactsCollection.updateOne(
-      { id: contact.id },
-      { $set: contact },
-      { upsert: true }
-    );
-  }
+      for (const contact of contacts) {
+        await contactsCollection.updateOne(
+          { id: contact.id },
+          { $set: contact },
+          { upsert: true }
+        );
+      }
 
-  for (const message of messages) {
-    await messagesCollection.updateOne(
-      { key: message.key },
-      { $set: message },
-      { upsert: true }
-    );
-  }
-  console.log('Full sync done !');
-  });
+      for (const message of messages) {
+        await messagesCollection.updateOne(
+          { key: message.key },
+          { $set: message },
+          { upsert: true }
+        );
+      }
+      console.log('Full sync done !');
+    }
+  );
 }
 
 app.get('/', (req, res) => {

@@ -22,7 +22,7 @@ import path from 'node:path';
 import axios from 'axios';
 import { fileURLToPath } from 'node:url';
 import { getContentType } from 'baileys';
-import { messagesCollection } from '../main.js'
+import { messagesCollection } from '../main.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,35 +47,52 @@ export default {
       quotedType === 'conversation'
         ? quoted.conversation
         : quotedType === 'extendedTextMessage'
-        ? quoted.extendedTextMessage?.text
-        : quotedType === 'textMessage'
-        ? quoted.textMessage?.text
-        : null;
+          ? quoted.extendedTextMessage?.text
+          : quotedType === 'textMessage'
+            ? quoted.textMessage?.text
+            : null;
 
     if (!quotedText) {
-      return await sock.sendMessage(jid, { text: 'Please reply to a text message.' }, { quoted: msg });
+      return await sock.sendMessage(
+        jid,
+        { text: 'Please reply to a text message.' },
+        { quoted: msg }
+      );
     }
 
     let count = 1;
     if (args[0] && /^[1-5]$/.test(args[0])) {
       count = Number.parseInt(args[0]);
     } else if (args[0] && !args.includes('noname')) {
-      return await sock.sendMessage(jid, { text: 'Please provide a number between 1 and 5.' }, { quoted: msg });
+      return await sock.sendMessage(
+        jid,
+        { text: 'Please provide a number between 1 and 5.' },
+        { quoted: msg }
+      );
     }
 
     const useNumberAsName = args.includes('noname');
     const allMsgs = await fetchMessagesFromWA(jid, 10);
 
     const quotedMsgId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
-    const startIndex = allMsgs.findIndex(m => m.key.id?.startsWith(quotedMsgId));
+    const startIndex = allMsgs.findIndex(m =>
+      m.key.id?.startsWith(quotedMsgId)
+    );
 
     if (startIndex === -1) {
-      return await sock.sendMessage(jid, { text: 'Could not find the message sequence.' }, { quoted: msg });
+      return await sock.sendMessage(
+        jid,
+        { text: 'Could not find the message sequence.' },
+        { quoted: msg }
+      );
     }
 
     const textMsgs = allMsgs.slice(startIndex, startIndex + count).filter(m => {
       const type = getContentType(m.message);
-      return type === 'conversation' || (type === 'extendedTextMessage' && m.message?.extendedTextMessage?.text);
+      return (
+        type === 'conversation' ||
+        (type === 'extendedTextMessage' && m.message?.extendedTextMessage?.text)
+      );
     });
 
     const messages = [];
@@ -101,8 +118,8 @@ export default {
           qTextType === 'conversation'
             ? qMsg.conversation
             : qTextType === 'extendedTextMessage'
-            ? qMsg.extendedTextMessage?.text
-            : null;
+              ? qMsg.extendedTextMessage?.text
+              : null;
 
         const qSender = contextInfo.participant;
         if (qText) {
@@ -140,23 +157,35 @@ export default {
     };
 
     try {
-      const res = await axios.post('https://bot.lyo.su/quote/generate', quoteJson, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res = await axios.post(
+        'https://bot.lyo.su/quote/generate',
+        quoteJson,
+        {
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
 
       const buffer = Buffer.from(res.data.result.image, 'base64');
       const filePath = path.join(__dirname, 'quote.png');
       fs.writeFileSync(filePath, buffer);
 
       const imageBuffer = fs.readFileSync(filePath);
-      await sock.sendMessage(jid, {
-        sticker: imageBuffer,
-      }, { quoted: msg });
+      await sock.sendMessage(
+        jid,
+        {
+          sticker: imageBuffer,
+        },
+        { quoted: msg }
+      );
 
       fs.unlinkSync(filePath);
     } catch (err) {
       console.error('Quote generation error:', err);
-      await sock.sendMessage(jid, { text: 'Something went wrong while generating the quote.' }, { quoted: msg });
+      await sock.sendMessage(
+        jid,
+        { text: 'Something went wrong while generating the quote.' },
+        { quoted: msg }
+      );
     }
   },
 };
@@ -165,11 +194,11 @@ async function fetchMessagesFromWA(jid, count) {
   try {
     const messages = await messagesCollection
       .find({ 'key.remoteJid': jid })
-      .sort({ messageTimestamp: -1 }) 
+      .sort({ messageTimestamp: -1 })
       .limit(count)
       .toArray();
 
-    return messages.reverse(); 
+    return messages.reverse();
   } catch (err) {
     console.error('Error fetching messages from DB:', err);
     return [];

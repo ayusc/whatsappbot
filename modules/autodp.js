@@ -108,7 +108,10 @@ async function downloadImage(imagePath) {
       fs.writeFileSync(imagePath, Buffer.from(buffer));
       return true;
     } catch (error) {
-      console.error(`Attempt ${attempt} - Failed to fetch random image:`, error.message);
+      console.error(
+        `Attempt ${attempt} - Failed to fetch random image:`,
+        error.message
+      );
       if (attempt < MAX_RETRIES) {
         return await tryRandomImage(attempt + 1);
       }
@@ -123,10 +126,7 @@ async function getWeather() {
   return new Promise(resolve => {
     weather.find({ search: city, degreeType: 'C' }, function (error, result) {
       if (error || !result || result.length === 0) {
-        console.log(
-          'Failed to get weather:',
-          error?.message || 'No results'
-        );
+        console.log('Failed to get weather:', error?.message || 'No results');
         return resolve({
           temperature: 'N/A',
           feelsLike: 'N/A',
@@ -217,17 +217,16 @@ async function getHoroscopes() {
 }
 
 async function generateImage() {
-  
   await downloadImage(imagePath);
 
   if (!fs.existsSync(imagePath)) {
-    console.error("Image not found, cannot process.");
+    console.error('Image not found, cannot process.');
     return;
   }
 
   const imageSize = fs.statSync(imagePath).size;
   if (imageSize === 0) {
-    console.error("Downloaded image is empty!");
+    console.error('Downloaded image is empty!');
     return;
   }
 
@@ -306,9 +305,9 @@ Air Quality Index (AQI): ${aqiresult.aqi} (${aqiresult.status})`;
   const overlayBuffer = canvas.toBuffer();
 
   await sharp(imagePath)
-  .composite([{ input: overlayBuffer, top: 0, left: 0 }])
-  .jpeg({ quality: 100 })
-  .toFile(outputImage);
+    .composite([{ input: overlayBuffer, top: 0, left: 0 }])
+    .jpeg({ quality: 100 })
+    .toFile(outputImage);
 
   console.log('Image generated successfully!');
 }
@@ -326,7 +325,11 @@ export default {
 
     if (globalThis.autodpRunning) {
       if (!message.fromStartup) {
-        await sock.sendMessage(jid, { text: 'AutoDP is already running!' }, { quoted: message });
+        await sock.sendMessage(
+          jid,
+          { text: 'AutoDP is already running!' },
+          { quoted: message }
+        );
       }
       return;
     }
@@ -334,9 +337,13 @@ export default {
     globalThis.autodpRunning = true;
 
     if (!message.fromStartup) {
-      await sock.sendMessage(jid, {
-        text: `AutoDP started.\nUpdating every ${intervalMs / 1000}s`
-      }, { quoted: message });
+      await sock.sendMessage(
+        jid,
+        {
+          text: `AutoDP started.\nUpdating every ${intervalMs / 1000}s`,
+        },
+        { quoted: message }
+      );
     }
 
     await ensureFontDownloaded();
@@ -362,5 +369,5 @@ export default {
         console.error('Initial DP update failed:', error.message);
       }
     }, millisUntilNextInterval);
-  }
+  },
 };

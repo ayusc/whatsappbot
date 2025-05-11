@@ -17,16 +17,25 @@
 export default {
   name: '.stopdp',
   description: 'Stop updating WhatsApp profile picture automatically.',
-  usage: 'Type .stopdp in any chat to stop updating WhatsApp profile picture automatically.',
+  usage:
+    'Type .stopdp in any chat to stop updating WhatsApp profile picture automatically.',
 
   async execute(message, args, sock) {
     if (globalThis.autodpInterval) {
-      clearInterval(globalThis.autodpInterval); 
+      clearInterval(globalThis.autodpInterval);
       globalThis.autodpInterval = null;
-      globalThis.autodpRunning = false; 
-      await sock.sendMessage(message.key.remoteJid, { text: 'AutoDP stopped' }, { quoted: message });
+      globalThis.autodpRunning = false;
+      await sock.sendMessage(
+        message.key.remoteJid,
+        { text: 'AutoDP stopped' },
+        { quoted: message }
+      );
     } else {
-      await sock.sendMessage(message.key.remoteJid, { text: 'AutoDP is not running' }, { quoted: message });
+      await sock.sendMessage(
+        message.key.remoteJid,
+        { text: 'AutoDP is not running' },
+        { quoted: message }
+      );
     }
-  }
+  },
 };
