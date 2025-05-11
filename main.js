@@ -114,6 +114,11 @@ async function restoreAuthStateFromMongo() {
   console.log('Session successfully restored from MongoDB');
 }
 
+// export these collections
+export let chatsCollection;
+export let messagesCollection;
+export let contactsCollection;
+
 async function startBot() {
   const mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
