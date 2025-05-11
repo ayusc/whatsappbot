@@ -22,6 +22,7 @@ import path from 'node:path';
 import axios from 'axios';
 import { fileURLToPath } from 'node:url';
 import { getContentType } from 'baileys';
+import { messagesCollection } from '../main.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -160,17 +161,20 @@ export default {
   },
 };
 
-async function fetchMessagesFromWA(sock, jid, count) {
+async function fetchMessagesFromWA(jid, count = 10) {
   try {
-    // Fetch the latest messages from the chat
-    const result = await sock.fetchMessageHistory(jid, count);
-    return result.messages;
+    const messages = await messagesCollection
+      .find({ 'key.remoteJid': jid })
+      .sort({ messageTimestamp: -1 }) 
+      .limit(count)
+      .toArray();
+
+    return messages.reverse(); 
   } catch (err) {
-    console.error('Error fetching message history:', err);
+    console.error('Error fetching messages from DB:', err);
     return [];
   }
 }
-
 
 async function getProfilePicUrl(sock, id) {
   try {
