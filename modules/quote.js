@@ -64,7 +64,7 @@ export default {
     }
 
     const useNumberAsName = args.includes('noname');
-    const allMsgs = await fetchMessagesFromWA(sock, jid, 10);
+    const allMsgs = await fetchMessagesFromWA(jid, 10);
 
     const quotedMsgId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
     const startIndex = allMsgs.findIndex(m => m.key.id?.startsWith(quotedMsgId));
@@ -161,7 +161,7 @@ export default {
   },
 };
 
-async function fetchMessagesFromWA(jid, count = 10) {
+async function fetchMessagesFromWA(jid, count) {
   try {
     const messages = await messagesCollection
       .find({ 'key.remoteJid': jid })
