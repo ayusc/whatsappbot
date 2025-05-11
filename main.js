@@ -266,7 +266,7 @@ async function startBot() {
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (!messages || !messages.length) return;
-
+  
     for (const msg of messages) {
       await messagesCollection.updateOne(
         { 'key.id': msg.key.id },
@@ -274,28 +274,29 @@ async function startBot() {
         { upsert: true }
       );
     }
-
+  
     if (type !== 'notify') return;
-
+  
     const msg = messages[0];
-    if (!msg.message || !msg.key.fromMe) return;
-
-    const sender = msg.key.remoteJid;
-    const messageContent =
-      msg.message.conversation ||
-      msg.message.extendedTextMessage?.text ||
-      msg.message.imageMessage?.caption ||
-      msg.message.videoMessage?.caption ||
-      '';
-
-    const args = messageContent.trim().split(/\s+/);
-    const command = args.shift().toLowerCase();
-
-    if (commands.has(command)) {
-      try {
-        await commands.get(command).execute(msg, args, sock);
-      } catch (err) {
-        console.error(`Error executing ${command}:`, err);
+    if (!msg.message) return;
+  
+    if (msg.key.fromMe) {
+      const messageContent =
+        msg.message.conversation ||
+        msg.message.extendedTextMessage?.text ||
+        msg.message.imageMessage?.caption ||
+        msg.message.videoMessage?.caption ||
+        '';
+  
+      const args = messageContent.trim().split(/\s+/);
+      const command = args.shift().toLowerCase();
+  
+      if (commands.has(command)) {
+        try {
+          await commands.get(command).execute(msg, args, sock);
+        } catch (err) {
+          console.error(`Error executing ${command}:`, err);
+        }
       }
     }
   });
