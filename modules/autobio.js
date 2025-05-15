@@ -19,6 +19,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const TIME_ZONE = process.env.TIME_ZONE || 'Asia/Kolkata';
+const AUTO_BIO_INTERVAL = parseInt(process.env.AUTO_BIO_INTERVAL_MS, 10) || 60000;
+
 let lastQuote = '';
 
 async function runQuoteUpdate() {
@@ -56,8 +59,7 @@ export default {
     'Type .autobio in any chat to start updating WhatsApp "About" with motivational quotes every X seconds (default 60s)',
 
   async execute(msg, _args, sock) {
-    const AUTO_BIO_INTERVAL =
-      parseInt(process.env.AUTO_BIO_INTERVAL_MS, 10) || 60000;
+    
     const jid = msg.key.remoteJid;
 
     if (globalThis.autobioRunning) {
@@ -82,12 +84,15 @@ export default {
         { quoted: msg }
       );
     }
+    
+    const now = new Date().toLocaleString('en-US', { timeZone: TIME_ZONE });
+    const nextMinute = new Date(now);
+    nextMinute.setSeconds(0);
+    nextMinute.setMilliseconds(0);
+    nextMinute.setMinutes(nextMinute.getMinutes() + 1);
+    
+    const delay = new Date(nextMinute) - new Date(now);
 
-    const now = Date.now();
-    const nextAligned = Math.ceil(now / AUTO_BIO_INTERVAL) * AUTO_BIO_INTERVAL;
-    const delay = nextAligned - now;
-
-    // Set the interval first
     globalThis.autobioInterval = setInterval(async () => {
       const q = await runQuoteUpdate();
       if (q) {
@@ -100,6 +105,7 @@ export default {
       }
     }, AUTO_BIO_INTERVAL);
 
+
     setTimeout(async () => {
       const quote = await runQuoteUpdate();
       if (quote) {
@@ -107,7 +113,7 @@ export default {
           await sock.updateProfileStatus(quote);
           console.log('About updated');
         } catch (error) {
-          console.error('Failed to set initial About status:', error.message);
+          console.error('Failed to update About:', error.message);
         }
       }
     }, delay);
