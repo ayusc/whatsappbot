@@ -349,25 +349,39 @@ export default {
     await ensureFontDownloaded();
     registerFont(fontPath, { family: 'FancyFont' });
 
-    const now = Date.now();
-    const millisUntilNextInterval = intervalMs - (now % intervalMs);
-
-    globalThis.autodpInterval = setInterval(async () => {
-      await generateImage();
-      const buffer = fs.readFileSync(outputImage);
-      await sock.updateProfilePicture(message.key.participant || jid, buffer);
-      console.log('DP updated');
-    }, intervalMs);
-
-    setTimeout(async () => {
-      try {
-        await generateImage();
-        const buffer = fs.readFileSync(outputImage);
-        await sock.updateProfilePicture(message.key.participant || jid, buffer);
-        console.log('DP updated');
-      } catch (error) {
-        console.error('Initial DP update failed:', error.message);
-      }
-    }, millisUntilNextInterval);
+    const now = new Date().toLocaleString('en-US', {
+     timeZone: TIME_ZONE,
+    });
+    const nextMinute = new Date(now);
+    nextMinute.setSeconds(0);
+    nextMinute.setMilliseconds(0);
+    nextMinute.setMinutes(nextMinute.getMinutes() + 1);
+    
+    const delay = new Date(nextMinute) - new Date(now);
+    
+    setTimeout(() => {
+      globalThis.autodpInterval = setInterval(async () => {
+        try {
+          await generateImage();
+          const buffer = fs.readFileSync(outputImage);
+          await sock.updateProfilePicture(message.key.participant || jid, buffer);
+          console.log('DP updated at');
+        } catch (error) {
+          console.error('DP update failed:', error.message);
+        }
+      }, intervalMs);
+    
+      // Run immediately at first aligned minute
+      (async () => {
+        try {
+          await generateImage();
+          const buffer = fs.readFileSync(outputImage);
+          await sock.updateProfilePicture(message.key.participant || jid, buffer);
+          console.log('DP updated');
+        } catch (error) {
+          console.error('DP update failed:', error.message);
+        }
+      })();
+    }, delay);
   },
 };
