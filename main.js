@@ -38,6 +38,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 let autoDPStarted = false;
 let autoBioStarted = false;
+let isBotRunning = false;
 
 const mongoUri = process.env.MONGO_URI;
 const authDir = './wahbuddy-auth';
@@ -122,12 +123,25 @@ async function restoreAuthStateFromMongo() {
   console.log('Session successfully restored from MongoDB');
 }
 
-// export these collections
 export let chatsCollection;
 export let messagesCollection;
 export let contactsCollection;
 
+async function retryUntilConnected(fn, retries = 5, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    if (sockInstance?.ws?.readyState === 1) {
+      return await fn();
+    }
+    console.log(`Waiting for socket to be ready... attempt ${i + 1}`);
+    await new Promise(res => setTimeout(res, delay));
+  }
+  throw new Error('Socket never became ready.');
+}
+
 async function startBot() {
+  if (isBotRunning) return;
+  isBotRunning = true;
+
   const mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
   db = mongoClient.db(dbName);
@@ -161,6 +175,13 @@ async function startBot() {
   sockInstance = sock;
   const commands = new Map();
 
+  sock.ws.on('close', (code, reason) => {
+    console.warn(`Socket closed: ${code} - ${reason}`);
+  });
+  sock.ws.on('error', err => {
+    console.error('Socket error:', err.message);
+  });
+
   sock.ev.on(
     'creds.update',
     debounce(async () => {
@@ -185,7 +206,8 @@ async function startBot() {
             DisconnectReason.loggedOut;
         console.log('Connection closed. Reconnecting:', shouldReconnect);
         if (shouldReconnect) {
-          startBot();
+          console.log('Restarting process for clean reconnect...');
+          process.exit(1);
         }
       } else if (connection === 'open') {
         console.log('Authenticated with WhatsApp');
@@ -194,7 +216,7 @@ async function startBot() {
         const moduleFiles = fs
           .readdirSync(modulesPath)
           .filter(file => file.endsWith('.js'));
-        
+
         for (const file of moduleFiles) {
           const module = await import(`./modules/${file}`);
           if (module.default?.name && module.default?.execute) {
@@ -228,7 +250,9 @@ async function startBot() {
           autoDPStarted = true;
           if (commands.has('.autodp')) {
             try {
-              await commands.get('.autodp').execute(fakeMessage, [], sock);
+              await retryUntilConnected(() =>
+                commands.get('.autodp').execute(fakeMessage, [], sock)
+              );
               console.log('AutoDP enabled');
             } catch (error) {
               console.error('Failed to enable AutoDP', error);
@@ -242,7 +266,9 @@ async function startBot() {
           autoBioStarted = true;
           if (commands.has('.autobio')) {
             try {
-              await commands.get('.autobio').execute(fakeMessage, [], sock);
+              await retryUntilConnected(() =>
+                commands.get('.autobio').execute(fakeMessage, [], sock)
+              );
               console.log('AutoBio enabled');
             } catch (error) {
               console.error('Failed to enable AutoBio', error);
@@ -267,7 +293,7 @@ async function startBot() {
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (!messages || !messages.length) return;
-  
+
     for (const msg of messages) {
       await messagesCollection.updateOne(
         { 'key.id': msg.key.id },
@@ -275,12 +301,12 @@ async function startBot() {
         { upsert: true }
       );
     }
-  
+
     if (type !== 'notify') return;
-  
+
     const msg = messages[0];
     if (!msg.message) return;
-  
+
     if (msg.key.fromMe) {
       const messageContent =
         msg.message.conversation ||
@@ -288,10 +314,10 @@ async function startBot() {
         msg.message.imageMessage?.caption ||
         msg.message.videoMessage?.caption ||
         '';
-  
+
       const args = messageContent.trim().split(/\s+/);
       const command = args.shift().toLowerCase();
-  
+
       if (commands.has(command)) {
         try {
           await commands.get(command).execute(msg, args, sock);
@@ -315,7 +341,6 @@ async function startBot() {
   sock.ev.on(
     'messaging-history.set',
     async ({ chats, contacts, messages, isLatest }) => {
-      //console.log('messaging-history.set event triggered');
       for (const chat of chats) {
         await chatsCollection.updateOne(
           { id: chat.id },
@@ -365,6 +390,14 @@ function startSelfPing() {
     }
   }, 60 * 1000);
 }
+
+process.on('uncaughtException', err => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', err => {
+  console.error('Unhandled Rejection:', err);
+});
 
 startBot();
 startSelfPing();
