@@ -127,6 +127,8 @@ export let chatsCollection;
 export let messagesCollection;
 export let contactsCollection;
 
+const commands = new Map(); 
+
 async function startBot() {
   const mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
@@ -160,7 +162,6 @@ async function startBot() {
   });
 
   sockInstance = sock;
-  const commands = new Map();
 
   sock.ev.on(
     'creds.update',
