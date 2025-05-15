@@ -309,7 +309,7 @@ Air Quality Index (AQI): ${aqiresult.aqi} (${aqiresult.status})`;
     .jpeg({ quality: 100 })
     .toFile(outputImage);
 
-  console.log('Image generated successfully!');
+  //console.log('Image generated successfully!');
 }
 
 export default {
@@ -365,7 +365,7 @@ export default {
           await generateImage();
           const buffer = fs.readFileSync(outputImage);
           await sock.updateProfilePicture(message.key.participant || jid, buffer);
-          console.log('DP updated at');
+          console.log('DP updated');
         } catch (error) {
           console.error('DP update failed:', error.message);
         }
