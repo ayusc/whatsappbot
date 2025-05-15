@@ -202,17 +202,9 @@ async function startBot() {
         fromStartup: true,
       };
 
-      const waitForReady = async () => {
-        let attempts = 0;
-        while (!sock.user || !sock.authState.creds || !sock.ws || sock.ws.readyState !== 1) {
-          if (attempts >= 10) throw new Error('Socket never became ready.');
-          console.log(`Waiting for socket to be ready... attempt ${attempts + 1}`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          attempts++;
-        }
-      };
-
-      await waitForReady();
+      // we need a better implementation check to check whether socket is ready or not 
+      console.log('Waiting 60 seconds to allow socket to be ready...');
+      await new Promise(resolve => setTimeout(resolve, 60000)); 
 
       if (autoDP === 'True' && !autoDPStarted) {
         autoDPStarted = true;
