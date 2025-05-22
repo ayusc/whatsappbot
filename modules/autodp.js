@@ -37,6 +37,8 @@ const imageUrl =
 const intervalMs =
   Number.parseInt(process.env.AUTO_DP_INTERVAL_MS, 10) || 60_000;
 const SHOW_HOROSCOPE = process.env.SHOW_HOROSCOPE || 'False';
+let lastFetchedHoroscope = null;
+let lastFetchedTime = 0;
 
 globalThis.autodpInterval = globalThis.autodpInterval || null;
 const fontPath = path.join(__dirname, 'Lobster-Regular.ttf');
@@ -199,14 +201,21 @@ async function getAQI(cityName) {
 }
 
 async function getHoroscopes() {
+  const ONE_HOUR = 60 * 60 * 1000;
+  const now = Date.now();
+
+  if (lastFetchedHoroscope && now - lastFetchedTime < ONE_HOUR) {
+    return lastFetchedHoroscope;
+  }
+
   try {
-    const response = await fetch(
-      `https://api.api-ninjas.com/v1/horoscope?zodiac=${ZODIAC_SIGN}`
-    );
+    const response = await fetch(`https://api.api-ninjas.com/v1/horoscope?zodiac=${ZODIAC_SIGN}`);
     const data = await response.json();
     const daily = data?.horoscope || 'N/A';
     const sign = data?.sign || 'N/A';
-    return { sign, daily };
+    lastFetchedHoroscope = { sign, daily };
+    lastFetchedTime = now;
+    return lastFetchedHoroscope;
   } catch (error) {
     console.error("Failed to fetch today's horoscope:", error);
     return {
