@@ -41,14 +41,6 @@ export default {
         return await sock.sendMessage(jid, { text: 'No matching songs found.' });
       }
       
-      let progressMsg = await sock.sendMessage(
-        jid,
-        {
-          text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Downloading your song ..._`
-        },
-        { quoted: msg }
-      );      
-
       const tempDir = path.resolve('./temp');
       if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
@@ -66,6 +58,13 @@ export default {
 
       for (const api of apis) {
         try {
+          let progressMsg = await sock.sendMessage(
+            jid,
+            {
+              text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Downloading your song ..._`
+            },
+            { quoted: msg }
+          );      
           const res = await fetch(api);
           const json = await res.json();
           const downloadUrl = json?.data?.dl || json?.result?.downloadUrl;
@@ -110,8 +109,9 @@ export default {
             },
             { quoted: msg }
           );
-
+          
           downloaded = true;
+          
           break;
         } catch (err) {
           console.error('Error with API:', api, err.message);
@@ -125,10 +125,9 @@ export default {
         { quoted: msg },                
         );
       }
-
-      setTimeout(() => {
-        [rawAudio, finalAudio].forEach(f => fs.existsSync(f) && fs.unlinkSync(f));
-      }, 5000);
+      
+      [rawAudio, finalAudio].forEach(f => fs.existsSync(f) && fs.unlinkSync(f));
+      
     } catch (err) {
       console.error('Song command error:', err);
       await sock.sendMessage(jid, 
