@@ -69,27 +69,41 @@ export default {
     }
 
     const tempPath = path.join('./', `ocr.jpg`);
-    const MAX_SIZE = 1 * 1024 * 1024; // 1MB
+    const MAX_SIZE = 1000 * 1024;
     
     let finalBuffer = mediaBuffer;
     
     if (mediaBuffer.length > MAX_SIZE) {
-      try {
-        finalBuffer = await sharp(mediaBuffer)
-          .resize({ width: 1024, withoutEnlargement: true })
-          .jpeg({ quality: 80 }) // Compress
-          .toBuffer();
-        logger.info('Image was compressed due to size exceeding 1MB.');
+    let quality = 80;
+    try {
+        while (quality >= 30) {
+          const compressed = await sharp(mediaBuffer)
+            .resize({ width: 1024, withoutEnlargement: true })
+            .jpeg({ quality })
+            .toBuffer();
+    
+          if (compressed.length <= MAX_SIZE) {
+            finalBuffer = compressed;
+            logger.info(`Compressed image to ${compressed.length} bytes at quality ${quality}`);
+            break;
+          }
+    
+          quality -= 10; 
+        }
+    
+        if (quality < 30) {
+          throw new Error('Unable to compress under size limit');
+        }
       } catch (err) {
         logger.error('Failed to compress image:', err);
         await sock.sendMessage(sender, {
-          text: 'Image is too large and failed to compress.\nPlease try with a smaller image.',
+          text: 'Image is too large and could not be compressed enough. Please try with a smaller image.',
           quoted: msg
         });
         return;
       }
     }
-
+  
     writeFileSync(tempPath, finalBuffer);
 
     const formData = new FormData();
@@ -108,8 +122,17 @@ export default {
     );
 
     try {
+      const headers = formData.getHeaders();
+      headers['Content-Length'] = await new Promise((resolve, reject) =>
+        formData.getLength((err, length) => {
+          if (err) reject(err);
+          else resolve(length);
+        })
+      );
+      
       const response = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
+        headers,
         body: formData,
       });
 
