@@ -69,7 +69,28 @@ export default {
     }
 
     const tempPath = path.join('./', `ocr.jpg`);
-    writeFileSync(tempPath, mediaBuffer);
+    const MAX_SIZE = 1 * 1024 * 1024; // 1MB
+    
+    let finalBuffer = mediaBuffer;
+    
+    if (mediaBuffer.length > MAX_SIZE) {
+      try {
+        finalBuffer = await sharp(mediaBuffer)
+          .resize({ width: 1024, withoutEnlargement: true })
+          .jpeg({ quality: 80 }) // Compress
+          .toBuffer();
+        logger.info('Image was compressed due to size exceeding 1MB.');
+      } catch (err) {
+        logger.error('Failed to compress image:', err);
+        await sock.sendMessage(sender, {
+          text: 'Image is too large and failed to compress.\nPlease try with a smaller image.',
+          quoted: msg
+        });
+        return;
+      }
+    }
+
+    writeFileSync(tempPath, finalBuffer);
 
     const formData = new FormData();
     formData.append('apikey', OCR_SPACE_API_KEY);
