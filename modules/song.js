@@ -88,7 +88,17 @@ export default {
           
           if (fs.statSync(finalAudio).size < 1024) {
             console.error('Corrupt song file');
+            await sock.sendMessage(jid, 
+            { text: 'Some Error Occured !', edit: progressMsg.key },
+            { quoted: msg },                
+            );
           }
+          
+          await sock.sendMessage(
+          jid,
+          { text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Uploading your song ..._`, edit: progressMsg.key }, 
+          { quoted: msg }
+          );
           
           await sock.sendMessage(
             jid,
@@ -110,6 +120,10 @@ export default {
 
       if (!downloaded) {
         console.error('All sources failed.');
+        await sock.sendMessage(jid, 
+        { text: 'Unable to download the song.\nAPI Down !', edit: progressMsg.key },
+        { quoted: msg },                
+        );
       }
 
       setTimeout(() => {
