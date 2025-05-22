@@ -56,15 +56,16 @@ export default {
 
       let downloaded = false;
 
-      for (const api of apis) {
-        try {
-          let progressMsg = await sock.sendMessage(
+      let progressMsg = await sock.sendMessage(
             jid,
             {
               text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Downloading your song ..._`
             },
             { quoted: msg }
-          );      
+      );    
+
+      for (const api of apis) {
+        try {
           const res = await fetch(api);
           const json = await res.json();
           const downloadUrl = json?.data?.dl || json?.result?.downloadUrl;
