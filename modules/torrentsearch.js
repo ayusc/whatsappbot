@@ -18,7 +18,7 @@ import axios from 'axios';
 
 export default {
   name: '.trs',
-  description: 'Fetch torrents from multiple sources and return top magnet links',
+  description: 'Fetch torrents from PirateBay and return top magnet links',
   usage: '.trs <search-term> to find torrents',
 
   async execute(msg, args, sock) {
@@ -34,44 +34,33 @@ export default {
     }
 
     const query = args.join(' ');
-    const baseUrl = 'https://news-api-six-navy.vercel.app/api/torrent';
-    const sources = ['piratebay', '1337x', 'nyaasi', 'yts'];
+    const baseUrl = 'https://news-api-six-navy.vercel.app/api/torrent/piratebay/';
     const results = [];
-    let successfulSources = 0;
 
     try {
-      const fetchPromises = sources.map(async (source) => {
-        try {
-          const res = await axios.get(`${baseUrl}/${source}/${encodeURIComponent(query)}/1`, { timeout: 10000 });
-          const torrents = res.data?.torrents?.slice(0, 5) || [];
-          if (torrents.length) successfulSources++;
+      const res = await axios.get(`${baseUrl}/${encodeURIComponent(query)}/1`);
+      const torrents = res.data;
 
-          torrents.forEach(torrent => {
-            results.push({
-              Name: torrent.name || 'N/A',
-              Size: torrent.size || 'N/A',
-              DateUploaded: torrent.date || torrent.uploaded || 'N/A',
-              Seeders: torrent.seeders || 'N/A',
-              Leechers: torrent.leechers || 'N/A',
-              Downloads: torrent.downloads || 'N/A',
-              Magnet: torrent.magnet || 'N/A',
-            });
-          });
-        } catch (err) {
-          console.error(`Failed to fetch from ${source}:`, err.message);
-        }
-      });
-
-      await Promise.all(fetchPromises);
-
-      if (!results.length || successfulSources === 0) {
+      if (!torrents.length) {
         await sock.sendMessage(
           sender,
-          { text: `❌ Could not fetch results from any source for *${query}*.` },
+          { text: `No results found for *${query}*.` },
           { quoted: msg }
         );
         return;
       }
+
+      torrents.forEach(torrent => {
+        results.push({
+          Name: torrent.Name || 'N/A',
+          Size: torrent.Size || 'N/A',
+          Category: torrent.Category || 'N/A',
+          DateUploaded: torrent.DateUploaded || 'N/A',
+          Seeders: torrent.Seeders || 'N/A',
+          Leechers: torrent.Leechers || 'N/A',
+          Magnet: torrent.Magnet || 'N/A',
+        });
+      });
 
       let reply = `*Search results for "${query}"*:\n\n`;
 
@@ -79,19 +68,19 @@ export default {
         reply +=
           `*Name:* ${result.Name}\n` +
           `*Size:* ${result.Size}\n` +
+          `*Category:* ${torrent.Category}\n` +
           `*Upload Date:* ${result.DateUploaded}\n` +
           `*Seeders:* ${result.Seeders}\n` +
           `*Leechers:* ${result.Leechers}\n` +
-          `*Downloads:* ${result.Downloads}\n` +
           `*Magnet Link:*\n${result.Magnet}\n\n`;
       });
 
       await sock.sendMessage(sender, { text: reply.trim() }, { quoted: msg });
     } catch (err) {
-      console.error('Unexpected error during torrent fetch:', err.message);
+      console.error('Error fetching from PirateBay:', err.message);
       await sock.sendMessage(
         sender,
-        { text: 'An unexpected error occurred while fetching torrent data.' },
+        { text: 'An error occurred while fetching torrent data from PirateBay.' },
         { quoted: msg }
       );
     }
