@@ -219,18 +219,25 @@ async function startBot() {
           commandsLoaded = true; 
         }
 
-        console.log('WahBuddy is Online !');
+        if (initialConnect) {
+          console.log('WahBuddy is Online !');
+        }
         
         initialConnect = false;
-        
+
+        const mockContext = {
+          client: sock,
+          message: {
+            key: {
+              remoteJid: 'status@broadcast' 
+            }
+          },
+          args: [],
+        };
+
         if (!autoDPStarted && autoDP === 'True' && commands.has('.autodp')) {
         autoDPStarted = true;
         try {
-          const mockContext = {
-            client: sock,
-            message: null,
-            args: [],
-          };
           await commands.get('.autodp').execute(mockContext);
         } catch (error) {
           console.error(`AutoDP Error: ${error.message}`);
@@ -240,11 +247,6 @@ async function startBot() {
       if (!autoBioStarted && autobio === 'True' && commands.has('.autobio')) {
         autoBioStarted = true;
         try {
-          const mockContext = {
-            client: sock,
-            message: null,
-            args: [],
-          };
           await commands.get('.autobio').execute(mockContext);
         } catch (error) {
           console.error(`AutoBio Error: ${error.message}`);
