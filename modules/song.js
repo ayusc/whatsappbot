@@ -81,11 +81,11 @@ export default {
             '-vn',
             '-acodec', 'libmp3lame',
             '-ac', '2',
-            '-ab', '128k',
+            '-b:a', '192k',
             '-ar', '44100',
             finalAudio
           ]);
-          
+                    
           if (fs.statSync(finalAudio).size < 1024) {
             console.error('Corrupt song file');
             await sock.sendMessage(jid, 
