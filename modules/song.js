@@ -40,6 +40,14 @@ export default {
       if (!result) {
         return await sock.sendMessage(jid, { text: 'No matching songs found.' });
       }
+      
+      let progressMsg = await sock.sendMessage(
+        jid,
+        {
+          text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Downloading your song ..._`
+        },
+        { quoted: msg }
+      );      
 
       const tempDir = path.resolve('./temp');
       if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
@@ -55,14 +63,6 @@ export default {
       ];
 
       let downloaded = false;
-
-      let progressMsg = await sock.sendMessage(
-        jid,
-        {
-          text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Downloading your song ..._`
-        },
-        { quoted: msg }
-      );
 
       for (const api of apis) {
         try {
