@@ -18,7 +18,7 @@ import axios from 'axios';
 
 export default {
   name: '.trs',
-  description: 'Fetch torrents from various providers and return magnet links',
+  description: 'Fetch torrents from multiple sources and return top magnet links',
   usage: '.trs <search-term> to find torrents',
 
   async execute(msg, args, sock) {
@@ -34,64 +34,67 @@ export default {
     }
 
     const query = args.join(' ');
-    const url = `https://torrent.exonoob.in/api/all/${encodeURIComponent(query)}/1`;
-    let results = [];
+    const baseUrl = 'https://news-api-six-navy.vercel.app/api/torrent';
+    const sources = ['piratebay', '1337x', 'nyaasi', 'yts'];
+    const results = [];
+    let successfulSources = 0;
 
     try {
-      const { data } = await axios.get(url, { timeout: 10000 });
+      const fetchPromises = sources.map(async (source) => {
+        try {
+          const res = await axios.get(`${baseUrl}/${source}/${encodeURIComponent(query)}/1`, { timeout: 10000 });
+          const torrents = res.data?.torrents?.slice(0, 5) || [];
+          if (torrents.length) successfulSources++;
 
-      if (Array.isArray(data[0])) {
-        results.push(...data[0]);
-      }
-
-      if (Array.isArray(data[1])) {
-        for (const movie of data[1]) {
-          if (movie.Files && movie.Files.length > 0) {
-            for (const file of movie.Files) {
-              results.push({
-                Name: movie.Name,
-                Size: file.Size,
-                DateUploaded: movie.ReleasedDate,
-                Seeders: 'N/A',
-                Leechers: 'N/A',
-                Downloads: movie.Likes || 'N/A',
-                Magnet: file.Magnet,
-              });
-            }
-          }
+          torrents.forEach(torrent => {
+            results.push({
+              Name: torrent.name || 'N/A',
+              Size: torrent.size || 'N/A',
+              DateUploaded: torrent.date || torrent.uploaded || 'N/A',
+              Seeders: torrent.seeders || 'N/A',
+              Leechers: torrent.leechers || 'N/A',
+              Downloads: torrent.downloads || 'N/A',
+              Magnet: torrent.magnet || 'N/A',
+            });
+          });
+        } catch (err) {
+          console.error(`Failed to fetch from ${source}:`, err.message);
         }
-      }
+      });
 
-      if (!results.length) {
+      await Promise.all(fetchPromises);
+
+      if (!results.length || successfulSources === 0) {
         await sock.sendMessage(
           sender,
-          { text: `No results found for *${query}*` },
+          { text: `❌ Could not fetch results from any source for *${query}*.` },
           { quoted: msg }
         );
         return;
       }
 
-      let reply = `*Search results for ${query}*\n\n`;
+      let reply = `*Search results for "${query}"*:\n\n`;
 
-      for (const result of results) {
+      results.forEach(result => {
         reply +=
-          `*Name:* ${result.Name || 'N/A'}\n` +
-          `*Size:* ${result.Size || 'N/A'}\n` +
-          `*Upload Date:* ${result.DateUploaded || 'N/A'}\n` +
-          `*Seeders:* ${result.Seeders || 'N/A'}\n` +
-          `*Leechers:* ${result.Leechers || 'N/A'}\n` +
-          `*Downloads:* ${result.Downloads || 'N/A'}\n` +
-          `*Magnet Link:*\n${result.Magnet || 'N/A'}\n\n`;
-      }
+          `*Name:* ${result.Name}\n` +
+          `*Size:* ${result.Size}\n` +
+          `*Upload Date:* ${result.DateUploaded}\n` +
+          `*Seeders:* ${result.Seeders}\n` +
+          `*Leechers:* ${result.Leechers}\n` +
+          `*Downloads:* ${result.Downloads}\n` +
+          `*Magnet Link:*\n${result.Magnet}\n\n`;
+      });
 
       await sock.sendMessage(sender, { text: reply.trim() }, { quoted: msg });
     } catch (err) {
-      console.error('Error fetching torrents:', err.message);
+      console.error('Unexpected error during torrent fetch:', err.message);
       await sock.sendMessage(
         sender,
-        { text: 'Something went wrong while fetching results.' },
+        { text: 'An unexpected error occurred while fetching torrent data.' },
         { quoted: msg }
       );
     }
   },
 };
+
