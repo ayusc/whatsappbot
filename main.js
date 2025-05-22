@@ -189,7 +189,7 @@ async function startBot() {
         const shouldReconnect =
           lastDisconnect?.error instanceof Boom &&
           lastDisconnect.error.output?.statusCode !== DisconnectReason.loggedOut;
-        //console.log('Connection closed. Reconnecting:', shouldReconnect);
+        console.log('Connection closed. Reconnecting ...');
         if (shouldReconnect) {
           startBot();
         }
@@ -218,28 +218,38 @@ async function startBot() {
           }
           commandsLoaded = true; 
         }
+
+        console.log('WahBuddy is Online !');
         
         initialConnect = false;
-
-        const fakeMessage = {
-          key: { remoteJid: null },
-          pushName: 'WahBuddy',
-          message: {},
-          participant: null,
-          fromStartup: true,
-        };
         
-        if (autoDP === 'True' &&  autobio === 'True' && !autoDPStarted && !autoBioStarted) {
-          autoDPStarted = true;
-          autoBioStarted = true;
-          if (commands.has('.autodp') && commands.has('.autobio')) {
-          try {
-            // to be implemented later
-          } catch (error) {
-            console.error(error.message);
-          }
-          }
+        if (!autoDPStarted && autoDP === 'True' && commands.has('.autodp')) {
+        autoDPStarted = true;
+        try {
+          const mockContext = {
+            client: sock,
+            message: null,
+            args: [],
+          };
+          await commands.get('.autodp').execute(mockContext);
+        } catch (error) {
+          console.error(`AutoDP Error: ${error.message}`);
         }
+      }
+      
+      if (!autoBioStarted && autobio === 'True' && commands.has('.autobio')) {
+        autoBioStarted = true;
+        try {
+          const mockContext = {
+            client: sock,
+            message: null,
+            args: [],
+          };
+          await commands.get('.autobio').execute(mockContext);
+        } catch (error) {
+          console.error(`AutoBio Error: ${error.message}`);
+        }
+      }
       }
   });
 
