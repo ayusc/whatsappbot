@@ -112,7 +112,13 @@ export default {
           );
           
           downloaded = true;
-          
+          await sock.sendMessage(jid, {
+            delete: {
+              remoteJid: jid,
+              fromMe: true,
+              id: progressMsg.key.id
+            }
+          });
           break;
         } catch (err) {
           console.error('Error with API:', api, err.message);
