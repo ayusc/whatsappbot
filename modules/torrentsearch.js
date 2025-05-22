@@ -34,7 +34,7 @@ export default {
     }
 
     const query = args.join(' ');
-    const baseUrl = 'https://news-api-six-navy.vercel.app/api/torrent/piratebay/';
+    const baseUrl = 'https://news-api-six-navy.vercel.app/api/torrent/piratebay';
     const results = [];
 
     try {
@@ -68,7 +68,7 @@ export default {
         reply +=
           `*Name:* ${result.Name}\n` +
           `*Size:* ${result.Size}\n` +
-          `*Category:* ${torrent.Category}\n` +
+          `*Category:* ${result.Category}\n` +
           `*Upload Date:* ${result.DateUploaded}\n` +
           `*Seeders:* ${result.Seeders}\n` +
           `*Leechers:* ${result.Leechers}\n` +
