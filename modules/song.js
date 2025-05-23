@@ -16,6 +16,18 @@ function formatTime(seconds) {
     : `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+function formatViews(number) {
+  if (number >= 10000000) {
+    return (number / 10000000).toFixed(2) + ' Cr';
+  } else if (number >= 100000) {
+    return (number / 100000).toFixed(2) + ' Lakh';
+  } else if (number >= 1000) {
+    return (number / 1000).toFixed(2) + ' K';
+  } else {
+    return number.toString();
+  }
+}
+
 function withCommas(number) {
   return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
@@ -37,6 +49,8 @@ export default {
     try {
       const search = await yts(query);
       const result = search.videos[0];
+      const views = formatViews(result.views);
+      
       if (!result) {
         return await sock.sendMessage(jid, { text: 'No matching songs found.' });
       }
@@ -59,7 +73,7 @@ export default {
       let progressMsg = await sock.sendMessage(
             jid,
             {
-              text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Downloading your song ..._`
+              text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${views}\n\n_Downloading your song ..._`
             },
             { quoted: msg }
       );    
@@ -75,6 +89,12 @@ export default {
           fs.writeFileSync(rawAudio, audioBuffer);
 
           const execFileAsync = util.promisify(execFile);
+
+          await sock.sendMessage(
+          jid,
+          { text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${views}\n\n_Converting to MP3 ..._`, edit: progressMsg.key }, 
+          { quoted: msg }
+          );       
 
           await execFileAsync(ffmpegPath, [
             '-i', rawAudio,
@@ -96,7 +116,7 @@ export default {
           
           await sock.sendMessage(
           jid,
-          { text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${result.views}\n\n_Uploading your song ..._`, edit: progressMsg.key }, 
+          { text: `*Song Information:*\n\nName: ${result.title}\n\nDuration: ${result.timestamp}\n\nViews: ${views}\n\n_Uploading your song ..._`, edit: progressMsg.key }, 
           { quoted: msg }
           );
           
