@@ -152,8 +152,12 @@ async function startBot() {
   const { version } = await fetchLatestBaileysVersion();
 
   const getMessage = async key => {
-    const message = await messagesCollection.findOne({ 'key.id': key.id });
-    return message?.message || null;
+  const message = await messagesCollection.findOne({
+    'key.id': key.id,
+    'key.remoteJid': key.remoteJid,
+    'key.fromMe': key.fromMe,
+  });
+  return message?.message || null;
   };
 
   const sock = makeWASocket({
