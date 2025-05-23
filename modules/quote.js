@@ -60,21 +60,18 @@ export default {
       );
     }
 
-    let count = 1;
-    if (args[0] && /^[1-5]$/.test(args[0])) {
-      count = Number.parseInt(args[0]);
-    } else if (args[0] && !args.includes('noname')) {
-      return await sock.sendMessage(
-        jid,
-        { text: 'Please provide a number between 1 and 5.' },
-        { quoted: msg }
-      );
-    }
-
     const useNumberAsName = args.includes('noname');
     const countArg = args.find(arg => /^[1-5]$/.test(arg));
     const count = countArg ? Number(countArg) : 1;
-    
+
+    if (!quoted && count > 1) {
+    return await sock.sendMessage(
+    jid,
+    { text: 'Please reply to a message if you want to quote multiple messages.' },
+    { quoted: msg }
+    );
+    }
+
     if (count === 1) {
       const senderId = msg.message?.extendedTextMessage?.contextInfo?.participant || msg.key.remoteJid;
       const contactName = await getName(sock, senderId, useNumberAsName);
