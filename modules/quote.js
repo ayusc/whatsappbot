@@ -72,45 +72,18 @@ export default {
     }
 
     const useNumberAsName = args.includes('noname');
-    const allMsgs = await fetchMessagesFromWA(jid, 10);
-
-    const quotedMsgId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
-    const startIndex = allMsgs.findIndex(m =>
-      m.key.id?.startsWith(quotedMsgId)
-    );
-
-    if (startIndex === -1) {
-      return await sock.sendMessage(
-        jid,
-        { text: 'Could not find the message sequence.' },
-        { quoted: msg }
-      );
-    }
-
-    const textMsgs = allMsgs.slice(startIndex, startIndex + count).filter(m => {
-      const type = getContentType(m.message);
-      return (
-        type === 'conversation' ||
-        (type === 'extendedTextMessage' && m.message?.extendedTextMessage?.text)
-      );
-    });
-
-    const messages = [];
-
-    for (let i = 0; i < textMsgs.length; i++) {
-      const m = textMsgs[i];
-      const senderId = m.key.participant || m.key.remoteJid;
+    const countArg = args.find(arg => /^[1-5]$/.test(arg));
+    const count = countArg ? Number(countArg) : 1;
+    
+    if (count === 1) {
+      const senderId = msg.message?.extendedTextMessage?.contextInfo?.participant || msg.key.remoteJid;
       const contactName = await getName(sock, senderId, useNumberAsName);
       const avatar = await getProfilePicUrl(sock, senderId);
-
-      const type = getContentType(m.message);
-      const text =
-        type === 'conversation'
-          ? m.message.conversation
-          : m.message.extendedTextMessage?.text;
-
+    
+      const text = quotedText;
       let replyMessage;
-      const contextInfo = m.message?.extendedTextMessage?.contextInfo;
+    
+      const contextInfo = quoted?.extendedTextMessage?.contextInfo;
       if (contextInfo?.quotedMessage) {
         const qMsg = contextInfo.quotedMessage;
         const qTextType = getContentType(qMsg);
@@ -120,7 +93,7 @@ export default {
             : qTextType === 'extendedTextMessage'
               ? qMsg.extendedTextMessage?.text
               : null;
-
+    
         const qSender = contextInfo.participant;
         if (qText) {
           const qName = await getName(sock, qSender, useNumberAsName);
@@ -132,56 +105,22 @@ export default {
           };
         }
       }
-
-      messages.push({
-        entities: [],
-        avatar: true,
-        from: {
-          id: i + 1,
-          name: contactName,
-          photo: { url: avatar },
-        },
-        text,
-        replyMessage,
-      });
-    }
-
-    const quoteJson = {
-      type: 'quote',
-      format: 'png',
-      backgroundColor: '#FFFFFF',
-      width: 512,
-      height: 512,
-      scale: 2,
-      messages,
-    };
-
-    try {
-      const res = await axios.post(
-        'https://bot.lyo.su/quote/generate',
-        quoteJson,
+    
+      const messages = [
         {
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-
-      const buffer = Buffer.from(res.data.result.image, 'base64');
-
-      const webpBuffer = await sharp(buffer)
-      .resize(512, 512, {
-        fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
-      })
-      .webp({ quality: 100 })
-      .toBuffer();
-      
-      await sock.sendMessage(
-        jid,
-        {
-          sticker: webpBuffer,
+          entities: [],
+          avatar: true,
+          from: {
+            id: 1,
+            name: contactName,
+            photo: { url: avatar },
+          },
+          text,
+          replyMessage,
         },
-        { quoted: msg }
-      );
+      ];
+    
+      return await sendQuoteSticker(messages, sock, jid, msg);
 
     } catch (err) {
       console.error('Quote generation error:', err);
@@ -206,6 +145,52 @@ async function fetchMessagesFromWA(jid, count) {
   } catch (err) {
     console.error('Error fetching messages from DB:', err);
     return [];
+  }
+}
+
+async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
+  const quoteJson = {
+    type: 'quote',
+    format: 'png',
+    backgroundColor: '#FFFFFF',
+    width: 512,
+    height: 512,
+    scale: 2,
+    messages,
+  };
+
+  try {
+    const res = await axios.post(
+      'https://bot.lyo.su/quote/generate',
+      quoteJson,
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    const buffer = Buffer.from(res.data.result.image, 'base64');
+
+    const webpBuffer = await sharp(buffer)
+      .resize(512, 512, {
+        fit: 'contain',
+      })
+      .webp({ quality: 100 })
+      .toBuffer();
+
+    await sock.sendMessage(
+      jid,
+      {
+        sticker: webpBuffer,
+      },
+      { quoted: quotedMsg }
+    );
+  } catch (err) {
+    console.error('Quote generation error:', err);
+    await sock.sendMessage(
+      jid,
+      { text: 'Something went wrong while generating the quote.' },
+      { quoted: quotedMsg }
+    );
   }
 }
 
