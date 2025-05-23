@@ -228,7 +228,7 @@ async function startBot() {
         if (!autoDPStarted && autoDP === 'True' && commands.has('.autodp')) {
         autoDPStarted = true;
         try {
-          const { startAutoDP } = await import('./modules/.autodp.js');
+          const { startAutoDP } = await import('./modules/autodp.js');
           await startAutoDP(sock);
         } catch (error) {
           console.error(`AutoDP Error: ${error.message}`);
@@ -238,7 +238,7 @@ async function startBot() {
         if (!autoBioStarted && autobio === 'True' && commands.has('.autobio')) {
         autoBioStarted = true;
         try {
-          const { startAutoBio } = await import('./modules/.autobio.js');
+          const { startAutoBio } = await import('./modules/autobio.js');
           await startAutoBio(sock);
         } catch (error) {
           console.error(`AutoBio Error: ${error.message}`);
