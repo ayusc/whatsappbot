@@ -51,71 +51,64 @@ async function runQuoteUpdate() {
   }
 }
 
+async function startAutoBio(sock) {
+  if (globalThis.autobioRunning) return;
+
+  globalThis.autobioRunning = true;
+
+  const now = new Date().toLocaleString('en-US', { timeZone: TIME_ZONE });
+  const nextMinute = new Date(now);
+  nextMinute.setSeconds(0);
+  nextMinute.setMilliseconds(0);
+  nextMinute.setMinutes(nextMinute.getMinutes() + 1);
+  const delay = new Date(nextMinute) - new Date(now);
+
+  globalThis.autobioInterval = setInterval(async () => {
+    const q = await runQuoteUpdate();
+    if (q) {
+      try {
+        await sock.updateProfileStatus(q);
+        console.log('About updated');
+      } catch (error) {
+        console.error('Failed to update About:', error.message);
+      }
+    }
+  }, AUTO_BIO_INTERVAL);
+
+  setTimeout(async () => {
+    const quote = await runQuoteUpdate();
+    if (quote) {
+      try {
+        await sock.updateProfileStatus(quote);
+        console.log('About updated');
+      } catch (error) {
+        console.error('Failed to update About:', error.message);
+      }
+    }
+  }, delay);
+}
+
 export default {
   name: '.autobio',
-  description:
-    'Start updating WhatsApp About with motivational quotes every X seconds',
-  usage:
-    'Type .autobio in any chat to start updating WhatsApp "About" with motivational quotes every X seconds (default 60s)',
-
+  description: 'Start updating WhatsApp About with motivational quotes every X seconds',
+  usage: 'Type .autobio in any chat to start updating WhatsApp "About"...',
+  
   async execute(msg, _args, sock) {
-    
     const jid = msg.key.remoteJid;
 
     if (globalThis.autobioRunning) {
       if (!msg.fromStartup) {
-        await sock.sendMessage(
-          jid,
-          { text: 'AutoBio is already running!' },
-          { quoted: msg }
-        );
+        await sock.sendMessage(jid, { text: 'AutoBio is already running!' }, { quoted: msg });
       }
       return;
     }
 
-    globalThis.autobioRunning = true;
-
     if (!msg.fromStartup) {
-      await sock.sendMessage(
-        jid,
-        {
-          text: `AutoBio started. Updating every ${AUTO_BIO_INTERVAL / 1000}s`,
-        },
-        { quoted: msg }
-      );
+      await sock.sendMessage(jid, { text: `AutoBio started. Updating every ${AUTO_BIO_INTERVAL / 1000}s` }, { quoted: msg });
     }
-    
-    const now = new Date().toLocaleString('en-US', { timeZone: TIME_ZONE });
-    const nextMinute = new Date(now);
-    nextMinute.setSeconds(0);
-    nextMinute.setMilliseconds(0);
-    nextMinute.setMinutes(nextMinute.getMinutes() + 1);
-    
-    const delay = new Date(nextMinute) - new Date(now);
 
-    globalThis.autobioInterval = setInterval(async () => {
-      const q = await runQuoteUpdate();
-      if (q) {
-        try {
-          await sock.updateProfileStatus(q);
-          console.log('About updated');
-        } catch (error) {
-          console.error('Failed to update About:', error.message);
-        }
-      }
-    }, AUTO_BIO_INTERVAL);
-
-
-    setTimeout(async () => {
-      const quote = await runQuoteUpdate();
-      if (quote) {
-        try {
-          await sock.updateProfileStatus(quote);
-          console.log('About updated');
-        } catch (error) {
-          console.error('Failed to update About:', error.message);
-        }
-      }
-    }, delay);
+    await startAutoBio(sock);
   },
+
+  startAutoBio
 };
