@@ -73,6 +73,7 @@ export default {
     }
 
     if (count === 1) {
+      try{
       const senderId = msg.message?.extendedTextMessage?.contextInfo?.participant || msg.key.remoteJid;
       const contactName = await getName(sock, senderId, useNumberAsName);
       const avatar = await getProfilePicUrl(sock, senderId);
