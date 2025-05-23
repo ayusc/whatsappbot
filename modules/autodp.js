@@ -321,76 +321,71 @@ Air Quality Index (AQI): ${aqiresult.aqi} (${aqiresult.status})`;
   //console.log('Image generated successfully!');
 }
 
+async function startAutoDP(sock) {
+  if (globalThis.autodpRunning) return;
+
+  globalThis.autodpRunning = true;
+
+  await ensureFontDownloaded();
+  registerFont(fontPath, { family: 'FancyFont' });
+
+  const now = new Date().toLocaleString('en-US', { timeZone: TIME_ZONE });
+  const nextMinute = new Date(now);
+  nextMinute.setSeconds(0);
+  nextMinute.setMilliseconds(0);
+  nextMinute.setMinutes(nextMinute.getMinutes() + 1);
+  const delay = new Date(nextMinute) - new Date(now);
+
+  const intervalMs = parseInt(process.env.AUTO_DP_INTERVAL_MS, 10) || 60000;
+
+  setTimeout(() => {
+    globalThis.autodpInterval = setInterval(async () => {
+      try {
+        await generateImage();
+        const buffer = fs.readFileSync(outputImage);
+        await sock.updateProfilePicture('status@broadcast', buffer); // Can be customized
+        console.log('DP updated');
+      } catch (error) {
+        console.error('DP update failed:', error.message);
+      }
+    }, intervalMs);
+
+    // Run immediately at first aligned minute
+    (async () => {
+      try {
+        await generateImage();
+        const buffer = fs.readFileSync(outputImage);
+        await sock.updateProfilePicture('status@broadcast', buffer);
+        console.log('DP updated');
+      } catch (error) {
+        console.error('DP update failed:', error.message);
+      }
+    })();
+  }, delay);
+}
+
 export default {
   name: '.autodp',
-  description:
-    'Start updating WhatsApp Profile Picture with clock, current temperature, and horoscope',
-  usage:
-    'Type .autodp in any chat to start updating WhatsApp Profile Picture with clock, current temperature and horoscope every X seconds',
+  description: 'Start updating WhatsApp Profile Picture with clock, temperature, and horoscope',
+  usage: 'Type .autodp in any chat to start auto-updating your DP every X seconds',
 
-  async execute(message, arguments_, sock) {
-    const jid = message.key.remoteJid;
+  async execute(msg, _args, sock) {
+    const jid = msg.key.remoteJid;
     const intervalMs = parseInt(process.env.AUTO_DP_INTERVAL_MS, 10) || 60000;
 
     if (globalThis.autodpRunning) {
-      if (!message.fromStartup) {
-        await sock.sendMessage(
-          jid,
-          { text: 'AutoDP is already running!' },
-          { quoted: message }
-        );
+      if (!msg.fromStartup) {
+        await sock.sendMessage(jid, { text: 'AutoDP is already running!' }, { quoted: msg });
       }
       return;
     }
 
-    globalThis.autodpRunning = true;
-
-    if (!message.fromStartup) {
-      await sock.sendMessage(
-        jid,
-        {
-          text: `AutoDP started.\nUpdating every ${intervalMs / 1000}s`,
-        },
-        { quoted: message }
-      );
+    if (!msg.fromStartup) {
+      await sock.sendMessage(jid, { text: `AutoDP started.\nUpdating every ${intervalMs / 1000}s` }, { quoted: msg });
     }
 
-    await ensureFontDownloaded();
-    registerFont(fontPath, { family: 'FancyFont' });
-
-    const now = new Date().toLocaleString('en-US', {
-     timeZone: TIME_ZONE,
-    });
-    const nextMinute = new Date(now);
-    nextMinute.setSeconds(0);
-    nextMinute.setMilliseconds(0);
-    nextMinute.setMinutes(nextMinute.getMinutes() + 1);
-    
-    const delay = new Date(nextMinute) - new Date(now);
-    
-    setTimeout(() => {
-      globalThis.autodpInterval = setInterval(async () => {
-        try {
-          await generateImage();
-          const buffer = fs.readFileSync(outputImage);
-          await sock.updateProfilePicture(message.key.participant || jid, buffer);
-          console.log('DP updated');
-        } catch (error) {
-          console.error('DP update failed:', error.message);
-        }
-      }, intervalMs);
-    
-      // Run immediately at first aligned minute
-      (async () => {
-        try {
-          await generateImage();
-          const buffer = fs.readFileSync(outputImage);
-          await sock.updateProfilePicture(message.key.participant || jid, buffer);
-          console.log('DP updated');
-        } catch (error) {
-          console.error('DP update failed:', error.message);
-        }
-      })();
-    }, delay);
+    await startAutoDP(sock);
   },
+
+  startAutoDP
 };
