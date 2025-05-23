@@ -69,10 +69,10 @@ export default {
           `*Name:* ${result.Name}\n` +
           `*Size:* ${result.Size}\n` +
           `*Category:* ${result.Category}\n` +
-          `*Upload Date:* ${result.DateUploaded}\n` +
+          `*Upload Date:* _${result.DateUploaded}\n_` +
           `*Seeders:* ${result.Seeders}\n` +
           `*Leechers:* ${result.Leechers}\n` +
-          `*Magnet Link:*\n${result.Magnet}\n\n`;
+          `*Magnet Link:* _${result.Magnet}_\n\n`;
       });
 
       await sock.sendMessage(sender, { text: reply.trim() }, { quoted: msg });
