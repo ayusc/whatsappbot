@@ -225,29 +225,21 @@ async function startBot() {
         
         initialConnect = false;
 
-        const mockContext = {
-          client: sock,
-          message: {
-            key: {
-              remoteJid: 'status@broadcast' 
-            }
-          },
-          args: [],
-        };
-
         if (!autoDPStarted && autoDP === 'True' && commands.has('.autodp')) {
         autoDPStarted = true;
         try {
-          await commands.get('.autodp').execute(mockContext);
+          const { startAutoDP } = await import('./modules/.autodp.js');
+          await startAutoDP(sock);
         } catch (error) {
           console.error(`AutoDP Error: ${error.message}`);
         }
-      }
+        }
       
-      if (!autoBioStarted && autobio === 'True' && commands.has('.autobio')) {
+        if (!autoBioStarted && autobio === 'True' && commands.has('.autobio')) {
         autoBioStarted = true;
         try {
-          await commands.get('.autobio').execute(mockContext);
+          const { startAutoBio } = await import('./modules/.autobio.js');
+          await startAutoBio(sock);
         } catch (error) {
           console.error(`AutoBio Error: ${error.message}`);
         }
