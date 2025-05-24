@@ -18,8 +18,8 @@ import axios from 'axios';
 
 export default {
   name: '.trs',
-  description: 'Fetch torrents from PirateBay and return top magnet links',
-  usage: '.trs <search-term> to find torrents',
+  description: 'Fetch torrents from PirateBay and return top magnet links or specific one',
+  usage: 'Type .trs <search-term> to search for a torrent and use .trs <number> <search-term> to get the magnet link for that torrent',
 
   async execute(msg, args, sock) {
     const sender = msg.key.remoteJid;
@@ -33,9 +33,17 @@ export default {
       return;
     }
 
-    const query = args.join(' ');
+    let index = null;
+    let queryArgs = args;
+
+    // If first argument is a number, treat it as index
+    if (!isNaN(args[0])) {
+      index = parseInt(args[0], 10) - 1; // convert to 0-based index
+      queryArgs = args.slice(1);
+    }
+
+    const query = queryArgs.join(' ');
     const baseUrl = 'https://news-api-six-navy.vercel.app/api/torrent/piratebay';
-    const results = [];
 
     try {
       const res = await axios.get(`${baseUrl}/${encodeURIComponent(query)}/1`);
@@ -50,40 +58,48 @@ export default {
         return;
       }
 
-      torrents.forEach(torrent => {
-        results.push({
-          Name: torrent.Name || 'N/A',
-          Size: torrent.Size || 'N/A',
-          Category: torrent.Category || 'N/A',
-          DateUploaded: torrent.DateUploaded || 'N/A',
-          Seeders: torrent.Seeders || 'N/A',
-          Leechers: torrent.Leechers || 'N/A',
-          Magnet: torrent.Magnet || 'N/A',
-        });
-      });
+      if (index !== null) {
+        if (index < 0 || index >= torrents.length) {
+          await sock.sendMessage(
+            sender,
+            { text: `Invalid index. Only ${torrents.length} result(s) found.` },
+            { quoted: msg }
+          );
+          return;
+        }
+
+        const selected = torrents[index];
+        await sock.sendMessage(
+          sender,
+          {
+           text: `\`\`\`\n${selected.Magnet || 'N/A'}\n\`\`\``
+          },
+          { quoted: msg }
+        );
+        return;
+      }
 
       let reply = `*Search results for "${query}"*:\n\n`;
 
-      results.forEach(result => {
+      torrents.forEach((torrent, i) => {
         reply +=
-          `*Name:* ${result.Name}\n` +
-          `*Size:* ${result.Size}\n` +
-          `*Category:* ${result.Category}\n` +
-          `*Upload Date:* _${result.DateUploaded}\n_` +
-          `*Seeders:* ${result.Seeders}\n` +
-          `*Leechers:* ${result.Leechers}\n` +
-          `*Magnet Link:* _${result.Magnet}_\n\n`;
+          `${i + 1}.  ` +
+          `*Name:* ${torrent.Name || 'N/A'}\n` +
+          `*Size:* ${torrent.Size || 'N/A'}\n` +
+          `*Category:* ${torrent.Category || 'N/A'}\n` +
+          `*Upload Date:* ${torrent.DateUploaded || 'N/A'}\n` +
+          `*Seeders:* ${torrent.Seeders || 'N/A'}\n` +
+          `*Leechers:* ${torrent.Leechers || 'N/A'}\n\n`;
       });
 
       await sock.sendMessage(sender, { text: reply.trim() }, { quoted: msg });
     } catch (err) {
-      console.error('Error fetching from PirateBay:', err.message);
+      console.error('Error fetching:', err.message);
       await sock.sendMessage(
         sender,
-        { text: 'An error occurred while fetching torrent data from PirateBay.' },
+        { text: 'An error occurred while fetching torrent data.' },
         { quoted: msg }
       );
     }
   },
 };
-
