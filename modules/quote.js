@@ -43,14 +43,12 @@ export default {
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
     const quotedType = quoted && getContentType(quoted);
 
-    const quotedText =
-      quotedType === 'conversation'
-        ? quoted.conversation
-        : quotedType === 'extendedTextMessage'
-          ? quoted.extendedTextMessage?.text
-          : quotedType === 'textMessage'
-            ? quoted.textMessage?.text
-            : null;
+    const quotedText = (() => {
+      if (quotedType === 'conversation') return quoted.conversation;
+      if (quotedType === 'extendedTextMessage') return quoted.extendedTextMessage?.text;
+      if (quotedType === 'textMessage') return quoted.textMessage?.text;
+      return null;
+    })();
 
     if (!quotedText) {
       return await sock.sendMessage(
@@ -65,72 +63,70 @@ export default {
     const count = countArg ? Number(countArg) : 1;
 
     if (!quoted && count > 1) {
-    return await sock.sendMessage(
-    jid,
-    { text: 'Please reply to a message if you want to quote multiple messages.' },
-    { quoted: msg }
-    );
+      return await sock.sendMessage(
+        jid,
+        { text: 'Please reply to a message if you want to quote multiple messages.' },
+        { quoted: msg }
+      );
     }
 
     if (count === 1) {
-      try{
-      const senderId = msg.message?.extendedTextMessage?.contextInfo?.participant || msg.key.remoteJid;
-      const contactName = await getName(sock, senderId, useNumberAsName);
-      const avatar = await getProfilePicUrl(sock, senderId);
-    
-      const text = quotedText;
-      let replyMessage;
-    
-      const contextInfo = quoted?.extendedTextMessage?.contextInfo;
-      if (contextInfo?.quotedMessage) {
-        const qMsg = contextInfo.quotedMessage;
-        const qTextType = getContentType(qMsg);
-        const qText =
-          qTextType === 'conversation'
+      try {
+        const contextInfo = msg.message?.extendedTextMessage?.contextInfo;
+        const senderId = contextInfo?.participant || msg.key.remoteJid;
+        const contactName = await getName(sock, senderId, useNumberAsName);
+        const avatar = await getProfilePicUrl(sock, senderId);
+
+        let replyMessage = null;
+        const quotedCtxInfo = quoted?.extendedTextMessage?.contextInfo;
+
+        if (quotedCtxInfo?.quotedMessage) {
+          const qMsg = quotedCtxInfo.quotedMessage;
+          const qTextType = getContentType(qMsg);
+          const qText = qTextType === 'conversation'
             ? qMsg.conversation
             : qTextType === 'extendedTextMessage'
               ? qMsg.extendedTextMessage?.text
               : null;
-    
-        const qSender = contextInfo.participant;
-        if (qText) {
-          const qName = await getName(sock, qSender, useNumberAsName);
-          replyMessage = {
-            name: qName,
-            text: qText,
-            entities: [],
-            chatId: 123456789,
-          };
-        }
-      }
-    
-      const messages = [
-        {
-          entities: [],
-          avatar: true,
-          from: {
-            id: 1,
-            name: contactName,
-            photo: { url: avatar },
-          },
-          text,
-          replyMessage,
-        },
-      ];
-    
-      return await sendQuoteSticker(messages, sock, jid, msg);
 
-    } catch (err) {
-      console.error('Quote generation error:', err);
-      await sock.sendMessage(
-        jid,
-        { text: 'Something went wrong while generating the quote.' },
-        { quoted: msg }
-      );
+          const qSender = quotedCtxInfo.participant;
+          if (qText) {
+            const qName = await getName(sock, qSender, useNumberAsName);
+            replyMessage = {
+              name: qName,
+              text: qText,
+              entities: [],
+              chatId: 123456789,
+            };
+          }
+        }
+
+        const messages = [
+          {
+            entities: [],
+            avatar: true,
+            from: {
+              id: 1,
+              name: contactName,
+              photo: { url: avatar },
+            },
+            text: quotedText,
+            replyMessage,
+          },
+        ];
+
+        return await sendQuoteSticker(messages, sock, jid, msg);
+      } catch (err) {
+        console.error('Quote generation error:', err);
+        await sock.sendMessage(
+          jid,
+          { text: 'Something went wrong while generating the quote.' },
+          { quoted: msg }
+        );
+      }
     }
-    }      
-}
-}
+  }
+};
 
 async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
   const quoteJson = {
@@ -144,30 +140,18 @@ async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
   };
 
   try {
-    const res = await axios.post(
-      'https://bot.lyo.su/quote/generate',
-      quoteJson,
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    const res = await axios.post('https://bot.lyo.su/quote/generate', quoteJson, {
+      headers: { 'Content-Type': 'application/json' },
+    });
 
     const buffer = Buffer.from(res.data.result.image, 'base64');
 
     const webpBuffer = await sharp(buffer)
-      .resize(512, 512, {
-        fit: 'contain',
-      })
+      .resize(512, 512, { fit: 'contain' })
       .webp({ quality: 100 })
       .toBuffer();
 
-    await sock.sendMessage(
-      jid,
-      {
-        sticker: webpBuffer,
-      },
-      { quoted: quotedMsg }
-    );
+    await sock.sendMessage(jid, { sticker: webpBuffer }, { quoted: quotedMsg });
   } catch (err) {
     console.error('Quote generation error:', err);
     await sock.sendMessage(
@@ -190,6 +174,7 @@ async function getName(sock, id, useNumber) {
   if (useNumber) {
     return `+${id.split('@')[0]}`;
   }
-  const name = (await sock.onWhatsApp(id))?.[0]?.notify || '';
+  const waInfo = (await sock.onWhatsApp(id))?.[0];
+  const name = waInfo?.notify || waInfo?.pushname || '';
   return name || `+${id.split('@')[0]}`;
 }
