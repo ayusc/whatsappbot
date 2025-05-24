@@ -128,6 +128,7 @@ export default {
         { quoted: msg }
       );
     }
+    }      
 };
 
 async function fetchMessagesFromWA(jid, count) {
