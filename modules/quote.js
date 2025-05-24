@@ -129,7 +129,7 @@ export default {
       );
     }
     }      
-};
+}
 
 async function fetchMessagesFromWA(jid, count) {
   try {
