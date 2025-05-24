@@ -333,7 +333,7 @@ async function startBot() {
 
     for (const message of messages) {
       await messagesCollection.updateOne(
-        { key: message.key },
+        { 'key.id': message.key },
         { $set: message },
         { upsert: true }
       );
