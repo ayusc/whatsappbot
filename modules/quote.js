@@ -130,20 +130,6 @@ export default {
     }
     }      
 }
-
-async function fetchMessagesFromWA(jid, count) {
-  try {
-    const messages = await messagesCollection
-      .find({ 'key.remoteJid': jid })
-      .sort({ messageTimestamp: -1 })
-      .limit(count)
-      .toArray();
-
-    return messages.reverse();
-  } catch (err) {
-    console.error('Error fetching messages from DB:', err);
-    return [];
-  }
 }
 
 async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
