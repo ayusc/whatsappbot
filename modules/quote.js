@@ -132,7 +132,7 @@ async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
   const quoteJson = {
     type: 'quote',
     format: 'png',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     width: 512,
     height: 512,
     scale: 2,
@@ -147,7 +147,10 @@ async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
     const buffer = Buffer.from(res.data.result.image, 'base64');
 
     const webpBuffer = await sharp(buffer)
-      .resize(512, 512, { fit: 'contain' })
+      .resize(512, 512, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 } 
+      })
       .webp({ quality: 100 })
       .toBuffer();
 
