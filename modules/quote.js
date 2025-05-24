@@ -132,7 +132,7 @@ async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
   const quoteJson = {
     type: 'quote',
     format: 'png',
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
     width: 512,
     height: 512,
     scale: 2,
@@ -154,7 +154,7 @@ async function sendQuoteSticker(messages, sock, jid, quotedMsg) {
       .webp({ quality: 100 })
       .toBuffer();
 
-    await sock.sendMessage(jid, { sticker: webpBuffer }, { quoted: quotedMsg });
+    await sock.sendMessage(jid, { sticker: webpBuffer });
   } catch (err) {
     console.error('Quote generation error:', err);
     await sock.sendMessage(
