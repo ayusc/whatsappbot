@@ -28,8 +28,6 @@ import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 import qrcode from 'qrcode-terminal';
 import pino from 'pino';
-import express from 'express';
-import axios from 'axios';
 import { fetchLatestBaileysVersion } from 'baileys';
 import NodeCache from 'node-cache';
 import './app.js';
@@ -143,8 +141,6 @@ async function startBot() {
   chatsCollection = db.collection('chats');
   messagesCollection = db.collection('messages');
   contactsCollection = db.collection('contacts');
-
-  fs.mkdirSync(authDir, { recursive: true });
 
   await restoreAuthStateFromMongo();
 
